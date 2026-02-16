@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RTC FreeChat - Simple VoIP</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <div class="logo">FreeChat</div>
+        <div class="subtitle">The privacy first chat app</div>
+      </header>
+
+      <main class="app-main">
+        <section class="card join-card">
+          <h2>Join a room</h2>
+          <form id="join-form">
+            <label>
+              Display name
+              <input
+                id="display-name-input"
+                type="text"
+                placeholder="e.g. Alex"
+                required
+              />
+            </label>
+            <label>
+              Room ID
+              <input
+                id="room-id-input"
+                type="text"
+                placeholder="e.g. study-group"
+                required
+              />
+            </label>
+            <button type="submit" id="join-button">Join voice room</button>
+            <p class="hint">
+              Share the same Room ID with your friends so you can talk together.
+            </p>
+          </form>
+        </section>
+
+        <section class="card room-card hidden" id="room-card">
+          <div class="room-header">
+            <div>
+              <h2 id="room-title">Room</h2>
+              <p class="status" id="status-text">Not connected</p>
+            </div>
+            <div class="room-actions">
+              <button id="mute-button" disabled>Mute</button>
+              <button id="leave-button" class="danger" disabled>Leave</button>
+            </div>
+          </div>
+
+          <div class="room-body">
+            <div class="room-left">
+              <div class="participants">
+                <h3>Participants</h3>
+                <ul id="participants-list"></ul>
+              </div>
+              <div class="info">
+                <h3>Tips</h3>
+                <ul>
+                  <li>Use headphones to avoid echo.</li>
+                  <li>Mute yourself when not speaking.</li>
+                  <li>Share the room ID with friends to join.</li>
+                </ul>
+              </div>
+              <label class="ptt-toggle">
+                <input type="checkbox" id="ptt-checkbox" />
+                <span>Push-to-talk (hold Space to talk)</span>
+              </label>
+            </div>
+            <div class="chat">
+              <h3>Text chat</h3>
+              <div id="chat-messages" class="chat-messages"></div>
+              <form id="chat-form" class="chat-form">
+                <input
+                  id="chat-input"
+                  type="text"
+                  placeholder="Type a message and press Enter"
+                  autocomplete="off"
+                />
+                <button type="submit">Send</button>
+              </form>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        Built with WebRTC + Socket.IO
+      </footer>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>
+
