@@ -269,6 +269,20 @@ button.danger {
   height: 14px;
 }
 
+.compress-toggle {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.compress-toggle input {
+  width: 14px;
+  height: 14px;
+}
+
 .chat {
   display: flex;
   flex-direction: column;
@@ -325,10 +339,52 @@ button.danger {
   display: flex;
   gap: 6px;
   margin-top: 4px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .chat-form input[type='text'] {
   flex: 1;
+}
+
+.chat-file-input {
+  max-width: 120px;
+  font-size: 0.7rem;
+}
+
+.chat-file-name {
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-attachment {
+  margin-top: 3px;
+}
+
+.chat-attachment a {
+  color: #60a5fa;
+  text-decoration: none;
+}
+
+.chat-attachment a:hover {
+  text-decoration: underline;
+}
+
+.chat-attachment-preview {
+  margin-top: 3px;
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 180px;
+}
+
+.chat-attachment-preview img {
+  max-width: 100%;
+  display: block;
 }
 
 .app-footer {

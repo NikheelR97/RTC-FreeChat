@@ -12,7 +12,10 @@ const leaveButton = document.getElementById('leave-button');
 const chatMessages = document.getElementById('chat-messages');
 const chatForm = document.getElementById('chat-form');
 const chatInput = document.getElementById('chat-input');
+const chatFileInput = document.getElementById('chat-file-input');
+const chatFileName = document.getElementById('chat-file-name');
 const pttCheckbox = document.getElementById('ptt-checkbox');
+const compressImagesCheckbox = document.getElementById('compress-images-checkbox');
 
 let socket = null;
 let localStream = null;
@@ -73,7 +76,7 @@ function updateParticipantsList() {
   });
 }
 
-function appendChatMessage({ socketId, displayName, text, timestamp }) {
+function appendChatMessage({ socketId, displayName, text, timestamp, attachment }) {
   if (!chatMessages) return;
   const atBottom =
     chatMessages.scrollTop + chatMessages.clientHeight >= chatMessages.scrollHeight - 10;
@@ -85,12 +88,37 @@ function appendChatMessage({ socketId, displayName, text, timestamp }) {
   const time = timestamp ? new Date(timestamp) : new Date();
   const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+  let attachmentHtml = '';
+  if (attachment && attachment.url) {
+    const safeUrl = attachment.url;
+    const safeName = escapeHtml(attachment.originalName || 'attachment');
+    const mime = attachment.mimeType || '';
+    const isImage = /^image\//.test(mime);
+    if (isImage) {
+      attachmentHtml = `
+        <div class="chat-attachment">
+          <a href="${safeUrl}" target="_blank" rel="noreferrer">${safeName}</a>
+          <div class="chat-attachment-preview">
+            <img src="${safeUrl}" alt="${safeName}" />
+          </div>
+        </div>
+      `;
+    } else {
+      attachmentHtml = `
+        <div class="chat-attachment">
+          <a href="${safeUrl}" target="_blank" rel="noreferrer">${safeName}</a>
+        </div>
+      `;
+    }
+  }
+
   wrapper.innerHTML = `
     <div class="chat-meta">
       <span class="chat-name">${escapeHtml(displayName || 'Guest')}</span>
       <span class="chat-time">${escapeHtml(timeStr)}</span>
     </div>
-    <div class="chat-text">${escapeHtml(text)}</div>
+    <div class="chat-text">${escapeHtml(text || '')}</div>
+    ${attachmentHtml}
   `;
 
   chatMessages.appendChild(wrapper);
@@ -116,7 +144,12 @@ async function ensureLocalStream() {
   if (localStream) return localStream;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      },
       video: false
     });
     localStream = stream;
@@ -138,7 +171,18 @@ function createPeerConnection(peerId, remoteDisplayName, shouldInitiate) {
 
   // Add local audio tracks
   if (localStream) {
-    localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
+    localStream.getTracks().forEach((track) => {
+      const sender = pc.addTrack(track, localStream);
+      // Try to apply a lower max bitrate for audio to save bandwidth
+      const params = sender.getParameters();
+      if (!params.encodings) {
+        params.encodings = [{}];
+      }
+      params.encodings[0].maxBitrate = 40000; // ~40 kbps
+      sender
+        .setParameters(params)
+        .catch((err) => console.warn('Error setting sender params', err));
+    });
   }
 
   pc.onicecandidate = (event) => {
@@ -294,13 +338,75 @@ leaveButton.addEventListener('click', () => {
   leaveRoom();
 });
 
+if (chatFileInput && chatFileName) {
+  chatFileInput.addEventListener('change', () => {
+    const file = chatFileInput.files[0];
+    if (file) {
+      chatFileName.textContent = `Attachment: ${file.name}`;
+    } else {
+      chatFileName.textContent = '';
+    }
+  });
+}
+
 if (chatForm) {
-  chatForm.addEventListener('submit', (event) => {
+  chatForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (!socket || !socket.connected) return;
+
     const text = chatInput.value.trim();
-    if (!text || !socket || !socket.connected) return;
-    socket.emit('chat-message', { text });
+    const file = chatFileInput && chatFileInput.files[0];
+    let attachment = null;
+
+    if (file) {
+      let uploadFile = file;
+
+      // If this is an image and compression is enabled, compress it client-side before upload
+      if (
+        file.type &&
+        file.type.startsWith('image/') &&
+        compressImagesCheckbox &&
+        compressImagesCheckbox.checked
+      ) {
+        try {
+          const compressed = await compressImageFile(file, 960, 0.7);
+          if (compressed) {
+            uploadFile = compressed;
+          }
+        } catch (err) {
+          console.warn('Image compression failed, using original file', err);
+        }
+      }
+
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      try {
+        const res = await fetch('/upload', {
+          method: 'POST',
+          body: formData
+        });
+        if (!res.ok) {
+          console.error('Upload failed:', res.status);
+          alert('File upload failed.');
+        } else {
+          attachment = await res.json();
+        }
+      } catch (err) {
+        console.error('Upload error:', err);
+        alert('File upload error.');
+      }
+    }
+
+    if (!text && !attachment) return;
+
+    socket.emit('chat-message', { text, attachment });
     chatInput.value = '';
+    if (chatFileInput) {
+      chatFileInput.value = '';
+    }
+    if (chatFileName) {
+      chatFileName.textContent = '';
+    }
   });
 }
 
@@ -320,6 +426,39 @@ if (pttCheckbox) {
       muteButton.textContent = isMuted ? 'Unmute' : 'Mute';
       isPushToTalkKeyDown = false;
     }
+  });
+}
+
+async function compressImageFile(file, maxDimension, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
+      const scale = Math.min(1, maxDimension / Math.max(width, height));
+      width = Math.round(width * scale);
+      height = Math.round(height * scale);
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve(null);
+            return;
+          }
+          const compressedFile = new File([blob], file.name, {
+            type: 'image/jpeg'
+          });
+          resolve(compressedFile);
+        },
+        'image/jpeg',
+        quality
+      );
+    };
+    img.onerror = (err) => reject(err);
+    img.src = URL.createObjectURL(file);
   });
 }
 
@@ -416,8 +555,9 @@ function wireSocketEvents() {
     }
   });
 
-  socket.on('chat-message', ({ socketId, displayName, text, timestamp }) => {
-    appendChatMessage({ socketId, displayName, text, timestamp });
+  socket.on('chat-message', (payload) => {
+    const { socketId, displayName, text, timestamp, attachment } = payload || {};
+    appendChatMessage({ socketId, displayName, text, timestamp, attachment });
   });
 
   socket.on('mute-state', ({ socketId, muted }) => {

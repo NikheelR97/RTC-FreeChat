@@ -1,7 +1,9 @@
 const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const multer = require('multer');
 
 const app = express();
 const server = http.createServer(app);
@@ -12,6 +14,45 @@ const PORT = process.env.PORT || 3000;
 // Serve static frontend
 const publicDir = path.join(__dirname, 'public');
 app.use(express.static(publicDir));
+
+// File uploads for chat attachments
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
+const storage = multer.diskStorage({
+  destination: uploadsDir,
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname || '');
+    cb(null, unique + ext);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10 MB
+  }
+});
+
+app.use('/uploads', express.static(uploadsDir));
+
+app.post('/upload', upload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const fileInfo = {
+    url: `/uploads/${req.file.filename}`,
+    originalName: req.file.originalname || 'file',
+    mimeType: req.file.mimetype || 'application/octet-stream',
+    size: req.file.size
+  };
+
+  res.json(fileInfo);
+});
 
 // In-memory room registry: roomId -> Set<socketId>
 const rooms = new Map();
@@ -71,18 +112,30 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Text chat messages
-  socket.on('chat-message', ({ text }) => {
+  // Text chat messages (optionally with attachments)
+  socket.on('chat-message', ({ text, attachment }) => {
     const roomId = socket.data.roomId;
     if (!roomId) return;
 
     const safeText = String(text || '').slice(0, 500);
-    if (!safeText.trim()) return;
+    const hasText = safeText.trim().length > 0;
+    const hasAttachment = attachment && attachment.url;
+    if (!hasText && !hasAttachment) return;
+
+    const safeAttachment = hasAttachment
+      ? {
+          url: String(attachment.url),
+          originalName: String(attachment.originalName || 'file').slice(0, 120),
+          mimeType: String(attachment.mimeType || 'application/octet-stream'),
+          size: Number(attachment.size || 0)
+        }
+      : undefined;
 
     const payload = {
       socketId: socket.id,
       displayName: socket.data.displayName || 'Guest',
       text: safeText,
+      attachment: safeAttachment,
       timestamp: Date.now()
     };
 

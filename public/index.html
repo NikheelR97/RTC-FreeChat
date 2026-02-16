@@ -78,6 +78,12 @@
               <div id="chat-messages" class="chat-messages"></div>
               <form id="chat-form" class="chat-form">
                 <input
+                  id="chat-file-input"
+                  type="file"
+                  class="chat-file-input"
+                  title="Attach a file"
+                />
+                <input
                   id="chat-input"
                   type="text"
                   placeholder="Type a message and press Enter"
@@ -85,6 +91,11 @@
                 />
                 <button type="submit">Send</button>
               </form>
+              <div id="chat-file-name" class="chat-file-name"></div>
+              <label class="compress-toggle">
+                <input type="checkbox" id="compress-images-checkbox" checked />
+                <span>Compress images before upload (saves bandwidth)</span>
+              </label>
             </div>
           </div>
         </section>
