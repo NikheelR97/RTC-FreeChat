@@ -267,6 +267,26 @@ module.exports = (io) => {
             });
         });
 
+        // Typing Indicators
+        socket.on('typing', ({ channelId }) => {
+            const roomId = socket.data.roomId;
+            if (!roomId || !channelId) return;
+            socket.to(`${roomId}:${channelId}`).emit('user-typing', {
+                socketId: socket.id,
+                displayName: socket.data.displayName || 'Guest',
+                channelId
+            });
+        });
+
+        socket.on('stop-typing', ({ channelId }) => {
+            const roomId = socket.data.roomId;
+            if (!roomId || !channelId) return;
+            socket.to(`${roomId}:${channelId}`).emit('user-stopped-typing', {
+                socketId: socket.id,
+                channelId
+            });
+        });
+
         socket.on('disconnect', () => {
             const roomId = socket.data.roomId;
             if (roomId && rooms.has(roomId)) {

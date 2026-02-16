@@ -3,6 +3,12 @@ import { elements, updateChannelList, updateMembersList, updateVoicePanel, openM
 import { escapeHtml, getInitials, compressImageFile } from './utils.js';
 import { ensureLocalStream, joinVoiceChannel, leaveVoiceChannel, cleanupAllPeers } from './webrtc.js';
 import { setupSocket } from './socket-client.js';
+import { setupEmojiPicker } from './emoji.js';
+import { setupGifPicker } from './gif.js';
+
+// Setup Pickers
+setupEmojiPicker();
+setupGifPicker();
 
 // Expose switchChannel to window for UI callbacks (avoid cyclic dependency issues in simple setup)
 window.switchChannel = switchChannel;
@@ -11,8 +17,14 @@ window.switchChannel = switchChannel;
 if (elements.joinForm) {
     elements.joinForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (state.socket) return; // Prevent multiple connections
+
         const displayName = elements.displayNameInput.value.trim();
         if (!displayName) return;
+
+        // Disable button to prevent double clicks
+        const btn = elements.joinForm.querySelector('button');
+        if (btn) btn.disabled = true;
 
         state.currentDisplayName = displayName;
         elements.userName.textContent = displayName;
@@ -196,10 +208,39 @@ if (elements.chatForm) {
         if (!text && !attachment) return;
 
         state.socket.emit('chat-message', { text, attachment });
+        state.socket.emit('stop-typing', { channelId: state.currentTextChannelId });
         elements.chatInput.value = '';
         if (elements.chatFileInput) elements.chatFileInput.value = '';
         if (elements.chatFileName) elements.chatFileName.textContent = '';
     });
+
+    // Typing emission
+    let typingTimeout = null;
+    elements.chatInput.addEventListener('input', () => {
+        if (!state.socket || !state.currentTextChannelId) return;
+
+        state.socket.emit('typing', { channelId: state.currentTextChannelId });
+
+        if (typingTimeout) clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+            state.socket.emit('stop-typing', { channelId: state.currentTextChannelId });
+        }, 3000);
+    });
+
+    // Theme Toggle
+    if (elements.themeToggle) {
+        elements.themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('light-theme');
+            const isLight = document.body.classList.contains('light-theme');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        });
+
+        // Init theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-theme');
+        }
+    }
 }
 
 // File buttons
@@ -218,6 +259,18 @@ if (elements.fileButton && elements.chatFileInput) {
     });
 }
 
+
+// Listen for custom GIF send event
+document.addEventListener('send-gif', (e) => {
+    if (!state.socket || !state.currentTextChannelId) return;
+    const { url, originalName, mimeType, size } = e.detail;
+
+    // Send as attachment
+    state.socket.emit('chat-message', {
+        text: '',
+        attachment: { url, originalName, mimeType, size }
+    });
+});
 
 // Exported for UI to use
 export function switchChannel(channelId) {

@@ -1,6 +1,7 @@
 import { state } from './state.js';
-import { updateChannelList, updateMembersList, updateVoicePanel, appendChatMessage, setStatus } from './ui.js';
+import { updateChannelList, updateMembersList, updateVoicePanel, appendChatMessage, setStatus, showTyping, hideTyping } from './ui.js';
 import { createPeerConnection, cleanupPeer, ensureLocalStream } from './webrtc.js';
+import { sounds } from './sounds.js';
 // import { switchChannel } from './main.js'; // Removed to avoid cycle
 // Better to pass switchChannel as callback or emit event.
 // For now, let's export a setup function that takes callbacks if needed.
@@ -8,6 +9,26 @@ import { createPeerConnection, cleanupPeer, ensureLocalStream } from './webrtc.j
 // Let's implement switchChannel logic in main.js and update UI from here.
 
 export function setupSocket(socket) {
+    // Remove existing listeners to prevent duplicates if setup is called multiple times
+    socket.off('connect');
+    socket.off('room-info');
+    socket.off('channels-updated');
+    socket.off('channel-users');
+    socket.off('user-joined-room');
+    socket.off('user-left-room');
+    socket.off('user-joined-channel');
+    socket.off('user-left-channel');
+    socket.off('webrtc-offer');
+    socket.off('webrtc-answer');
+    socket.off('webrtc-ice-candidate');
+    socket.off('message-history');
+    socket.off('user-typing');
+    socket.off('user-stopped-typing');
+    socket.off('chat-message');
+    socket.off('mute-state');
+
+    socket.off('mute-state');
+
     socket.on('connect', () => {
         console.log('Connected to server');
     });
@@ -76,12 +97,26 @@ export function setupSocket(socket) {
         if (channelId === state.currentVoiceChannelId) {
             state.remoteParticipants.set(socketId, { displayName, muted: false });
             updateVoicePanel();
+            sounds.join();
         }
     });
 
     socket.on('user-left-channel', ({ socketId, channelId }) => {
         if (channelId === state.currentVoiceChannelId) {
             cleanupPeer(socketId);
+            sounds.leave();
+        }
+    });
+
+    // ... webrtc handlers ...
+
+    socket.on('chat-message', (payload) => {
+        const { socketId, displayName, text, timestamp, attachment, channelId } = payload || {};
+        if (channelId === state.currentTextChannelId) {
+            appendChatMessage({ socketId, displayName, text, timestamp, attachment });
+            if (socketId !== state.socket.id) {
+                sounds.message();
+            }
         }
     });
 
@@ -137,12 +172,25 @@ export function setupSocket(socket) {
         }
     });
 
-    socket.on('chat-message', (payload) => {
-        const { socketId, displayName, text, timestamp, attachment, channelId } = payload || {};
-        if (channelId === state.currentTextChannelId) {
-            appendChatMessage({ socketId, displayName, text, timestamp, attachment });
+    socket.on('user-typing', ({ socketId, displayName, channelId }) => {
+        if (channelId === state.currentTextChannelId && socketId !== state.socket.id) {
+            showTyping(displayName);
         }
     });
+
+    socket.on('user-stopped-typing', ({ socketId, displayName, channelId }) => {
+        // Note: server only sent socketId in stop-typing, but we need displayName for set?
+        // Actually our set uses displayName purely.
+        // Wait, ShowTyping uses displayName. HideTyping uses displayName.
+        // The server event 'user-stopped-typing' only sends socketId.
+        // We need to look up displayName from state.roomUsers?
+        if (channelId === state.currentTextChannelId) {
+            const user = state.roomUsers.get(socketId);
+            if (user) hideTyping(user.displayName);
+        }
+    });
+
+
 
     socket.on('mute-state', ({ socketId, muted }) => {
         const info = state.remoteParticipants.get(socketId);

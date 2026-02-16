@@ -1,17 +1,19 @@
-# RTC FreeChat – Simple VoIP Rooms
+# RTC FreeChat – Advanced VoIP & Text Rooms
 
-RTC FreeChat is a tiny Discord-style voice chat web app. Multiple users can join the same room ID and talk using WebRTC audio, with Socket.IO used for signaling.
+RTC FreeChat is a feature-rich voice and text chat web application. It supports simultaneous voice and text channels, file uploads, and works seamlessly on mobile devices. Built with WebRTC for audio and Socket.IO for real-time signaling.
 
-> This is intended as a learning / prototype app, not a production-ready service.
+> This is a learning / prototype app, demonstrating modern web app architecture.
 
 ## Features
 
-- Audio-only WebRTC voice chat
-- Simple room system (type a room ID and share it with friends)
-- Mute / unmute, push-to-talk, and leave controls
-- Presence list showing who is currently in the room
-- Built-in text chat per room
-- Modern, responsive UI
+- **Simultaneous Chat**: Join a voice channel while browsing text channels.
+- **Voice & Text Channels**: dedicated channels for different topics.
+- **Sidebar Controls**: Persistent voice controls (Mute, Deafen, Disconnect) in the sidebar.
+- **File Uploads**: Share images and files in text chat.
+- **Message Persistence**: Chat history (last 50 messages) is saved per channel.
+- **Mobile Friendly**: Fully responsive UI with collapsible sidebars and touch-optimized controls.
+- **WebRTC Audio**: Low-latency peer-to-peer voice chat.
+- **Push-to-Talk**: Optional PTT mode holding Spacebar.
 
 ## Prerequisites
 
@@ -39,41 +41,37 @@ npm start
 
 By default the server starts on `http://localhost:3000`.
 
-## Use it
+## usage
 
-1. Visit `http://localhost:3000` in your browser (Chrome or Edge recommended).
-2. Allow microphone access when prompted.
-3. Enter:
-   - A **display name** (how you appear in the participant list).
-   - A **room ID** (any short name, e.g. `study-group`).
-4. Click **“Join voice room”**.
-5. Share the same room ID with your friends so they can join.
-6. Use:
-   - **Mute / Unmute**: toggle your microphone on/off.
-   - **Push-to-talk**: enable the checkbox, then **hold Space** while speaking.
-   - **Leave**: exit the room (and close all peer connections).
-7. Use the **Text chat** panel on the right to send messages to everyone in the room.
+1. Visit `http://localhost:3000` in your browser.
+2. Enter a **Display Name** to join.
+3. **Channels**:
+   - Click a **#text-channel** to chat.
+   - Click a **🔊 voice-channel** to join the conversation.
+   - You can be in one text and one voice channel at the same time!
+4. **Voice Controls**:
+   - Use the panel at the bottom of the left sidebar to **Mute** or **Disconnect**.
+5. **Mobile**:
+   - Use the hamburger menu (top left) to access channels.
+   - Use the members icon (top right) to see who is online.
 
-> Tip: Wear headphones to reduce echo and feedback.
+## Project Structure
 
-## How it works (high level)
+The codebase is modular and organized for maintainability:
 
-- **Backend** (`server.js`)
-  - Express serves static files from `public/`.
-  - Socket.IO manages:
-    - `join-room` events and room membership.
-    - WebRTC signaling messages: `webrtc-offer`, `webrtc-answer`, `webrtc-ice-candidate`.
-  - Rooms are stored in memory (no database), and cleared when empty.
+- **Backend** (`server/`)
+  - `server.js`: Entry point, Express & Socket.IO setup.
+  - `server/state/rooms.js`: In-memory state management for rooms/channels/users.
+  - `server/socket/socketHandler.js`: Socket.IO event handlers.
 
-- **Frontend** (`public/index.html`, `public/app.js`, `public/style.css`)
-  - Joins a room via Socket.IO and requests microphone audio.
-  - Uses `RTCPeerConnection` to build a mesh between all participants in a room.
-  - Each remote participant gets its own hidden `<audio>` element that plays their stream.
-  - The participant list shows who is in the room and whether you are muted.
+- **Frontend** (`public/js/`)
+  - `main.js`: Application entry point.
+  - `ui.js`: DOM manipulation and UI updates.
+  - `state.js`: Client-side state management.
+  - `socket-client.js`: Socket.IO event logic.
+  - `webrtc.js`: WebRTC peer connection logic.
 
 ## Notes & Limitations
 
-- Rooms and users are **not persisted**; everything is in-memory.
-- It uses a simple peer-to-peer mesh; many users in one room may not scale well.
-- No authentication or user accounts are implemented.
-
+- **Persistence**: Rooms and messages are stored in-memory and will reset if the server restarts.
+- **Scaling**: Uses a full-mesh WebRTC topology; best for small to medium groups (up to ~10 users per voice channel).

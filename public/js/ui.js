@@ -31,6 +31,10 @@ export const elements = {
     emojiPickerContent: document.getElementById('emoji-picker-content'),
     emojiPickerTabs: document.getElementById('emoji-picker-tabs'),
     emojiSearchInput: document.getElementById('emoji-search-input'),
+    gifButton: document.getElementById('gif-button'),
+    gifPicker: document.getElementById('gif-picker'),
+    gifPickerContent: document.getElementById('gif-picker-content'),
+    gifSearchInput: document.getElementById('gif-search-input'),
     compressImagesCheckbox: document.getElementById('compress-images-checkbox'),
     muteButton: document.getElementById('mute-button'),
     // leaveButton removed in previous refactor
@@ -41,10 +45,12 @@ export const elements = {
     voiceChannelName: document.getElementById('voice-channel-name'),
     voiceDisconnectBtn: document.getElementById('voice-disconnect-btn'),
     pttCheckbox: document.getElementById('ptt-checkbox'),
+    themeToggle: document.getElementById('theme-toggle'),
     mobileMenuButton: document.getElementById('mobile-menu-button'),
     mobileMembersButton: document.getElementById('mobile-members-button'),
     sidebarLeft: document.querySelector('.sidebar-left'),
-    sidebarRight: document.querySelector('.sidebar-right')
+    sidebarRight: document.querySelector('.sidebar-right'),
+    typingIndicator: document.getElementById('typing-indicator')
 };
 
 export function updateChannelList(switchChannelCallback) {
@@ -144,6 +150,7 @@ export function appendChatMessage({ socketId, displayName, text, timestamp, atta
     }
 
     const initials = getInitials(displayName || 'Guest');
+
     messageDiv.innerHTML = `
     <div class="chat-message-avatar">${initials}</div>
     <div class="chat-message-content">
@@ -190,4 +197,41 @@ export function closeMobileSidebars() {
 
 export function setStatus(msg) {
     if (elements.statusText) elements.statusText.textContent = msg;
+}
+
+const typingUsers = new Set();
+
+export function showTyping(displayName) {
+    typingUsers.add(displayName);
+    updateTypingIndicator();
+}
+
+export function hideTyping(displayName) {
+    typingUsers.delete(displayName);
+    updateTypingIndicator();
+}
+
+function updateTypingIndicator() {
+    if (!elements.typingIndicator) {
+        // dynamic binding if not verified
+        elements.typingIndicator = document.getElementById('typing-indicator');
+        if (!elements.typingIndicator) return;
+    }
+
+    if (typingUsers.size === 0) {
+        elements.typingIndicator.classList.add('hidden');
+        elements.typingIndicator.textContent = '';
+        return;
+    }
+
+    elements.typingIndicator.classList.remove('hidden');
+    const users = Array.from(typingUsers);
+
+    if (users.length === 1) {
+        elements.typingIndicator.textContent = `${users[0]} is typing...`;
+    } else if (users.length === 2) {
+        elements.typingIndicator.textContent = `${users[0]} and ${users[1]} are typing...`;
+    } else {
+        elements.typingIndicator.textContent = `${users.length} people are typing...`;
+    }
 }

@@ -28,6 +28,9 @@
       <div class="server-header">
         <div class="server-icon">FC</div>
         <div class="server-name">FreeChat</div>
+        <button class="icon-button" id="theme-toggle" title="Toggle Theme" style="margin-left: auto;">
+          🌓
+        </button>
       </div>
       <div class="channels-section">
         <div class="channels-header">
@@ -90,11 +93,15 @@
       <!-- Chat Messages Area (for text channels) -->
       <div class="messages-area" id="messages-area">
         <div class="messages-container" id="chat-messages"></div>
+        <div id="typing-indicator" class="typing-indicator hidden"></div>
         <form id="chat-form" class="chat-form">
           <input id="chat-file-input" type="file" class="chat-file-input hidden" title="Attach a file" />
           <div class="chat-input-wrapper">
             <button type="button" class="chat-icon-button" id="emoji-button" title="Add emoji">
               😀
+            </button>
+            <button type="button" class="chat-icon-button" id="gif-button" title="Add GIF">
+              GIF
             </button>
             <button type="button" class="chat-icon-button" id="file-button" title="Attach file">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -104,6 +111,12 @@
                 </path>
               </svg>
             </button>
+            <div class="gif-picker hidden" id="gif-picker">
+              <div class="gif-picker-search">
+                <input type="text" id="gif-search-input" placeholder="Search Tenor GIFs..." autocomplete="off" />
+              </div>
+              <div class="gif-picker-content" id="gif-picker-content"></div>
+            </div>
             <input id="chat-input" type="text" placeholder="Type a message..." autocomplete="off" />
             <button type="submit" class="send-button">Send</button>
           </div>
