@@ -54,42 +54,146 @@ app.post('/upload', upload.single('file'), (req, res) => {
   res.json(fileInfo);
 });
 
-// In-memory room registry: roomId -> Set<socketId>
+// Room and channel structure:
+// rooms: Map<roomId, { channels: Map<channelId, { type: 'text'|'voice', users: Set<socketId> }>, users: Map<socketId, displayName> }>
 const rooms = new Map();
+
+function getOrCreateRoom(roomId) {
+  if (!rooms.has(roomId)) {
+    rooms.set(roomId, {
+      channels: new Map(),
+      users: new Map()
+    });
+    // Create default channels
+    const room = rooms.get(roomId);
+    room.channels.set('general', { type: 'text', users: new Set() });
+    room.channels.set('voice-1', { type: 'voice', users: new Set() });
+  }
+  return rooms.get(roomId);
+}
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
 
+  // Join a room (like joining a server)
   socket.on('join-room', ({ roomId, displayName }) => {
     socket.data.roomId = roomId;
     socket.data.displayName = displayName || 'Guest';
+    socket.data.currentChannel = null;
 
-    if (!rooms.has(roomId)) {
-      rooms.set(roomId, new Set());
-    }
-    const peers = rooms.get(roomId);
-    peers.add(socket.id);
+    const room = getOrCreateRoom(roomId);
+    room.users.set(socket.id, socket.data.displayName);
+    socket.join(roomId);
 
-    // Inform the new client about existing peers
-    const otherPeers = Array.from(peers).filter((id) => id !== socket.id);
-    socket.emit('room-users', {
-      users: otherPeers.map((id) => ({
-        socketId: id,
-        displayName: io.sockets.sockets.get(id)?.data.displayName || 'Guest'
-      }))
-    });
+    // Send room info (channels and users)
+    const channels = Array.from(room.channels.entries()).map(([id, data]) => ({
+      id,
+      type: data.type,
+      userCount: data.users.size
+    }));
 
-    // Notify others that a new user joined
-    socket.to(roomId).emit('user-joined', {
+    const users = Array.from(room.users.entries()).map(([socketId, name]) => ({
+      socketId,
+      displayName: name
+    }));
+
+    socket.emit('room-info', { channels, users });
+    socket.to(roomId).emit('user-joined-room', {
       socketId: socket.id,
       displayName: socket.data.displayName
     });
 
-    socket.join(roomId);
     console.log(`Socket ${socket.id} joined room ${roomId}`);
   });
 
-  // WebRTC signaling relays
+  // Create a new channel
+  socket.on('create-channel', ({ channelName, channelType }) => {
+    const roomId = socket.data.roomId;
+    if (!roomId) return;
+
+    const room = rooms.get(roomId);
+    if (!room) return;
+
+    const channelId = channelName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    if (room.channels.has(channelId)) {
+      socket.emit('channel-error', { message: 'Channel already exists' });
+      return;
+    }
+
+    room.channels.set(channelId, {
+      type: channelType || 'text',
+      users: new Set()
+    });
+
+    const channels = Array.from(room.channels.entries()).map(([id, data]) => ({
+      id,
+      type: data.type,
+      userCount: data.users.size
+    }));
+
+    io.to(roomId).emit('channels-updated', { channels });
+    console.log(`Channel ${channelId} created in room ${roomId}`);
+  });
+
+  // Join a channel
+  socket.on('join-channel', ({ channelId }) => {
+    const roomId = socket.data.roomId;
+    if (!roomId) return;
+
+    const room = rooms.get(roomId);
+    if (!room) return;
+
+    const channel = room.channels.get(channelId);
+    if (!channel) return;
+
+    // Leave previous channel
+    if (socket.data.currentChannel) {
+      const prevChannel = room.channels.get(socket.data.currentChannel);
+      if (prevChannel) {
+        prevChannel.users.delete(socket.id);
+        socket.to(roomId).emit('user-left-channel', {
+          socketId: socket.id,
+          channelId: socket.data.currentChannel
+        });
+      }
+    }
+
+    // Join new channel
+    socket.data.currentChannel = channelId;
+    channel.users.add(socket.id);
+    socket.join(`${roomId}:${channelId}`);
+
+    // Get channel users
+    const channelUsers = Array.from(channel.users)
+      .map((socketId) => ({
+        socketId,
+        displayName: room.users.get(socketId) || 'Guest'
+      }))
+      .filter((u) => u.socketId !== socket.id);
+
+    socket.emit('channel-users', {
+      channelId,
+      users: channelUsers
+    });
+
+    socket.to(`${roomId}:${channelId}`).emit('user-joined-channel', {
+      socketId: socket.id,
+      displayName: socket.data.displayName,
+      channelId
+    });
+
+    // Update channel user counts
+    const channels = Array.from(room.channels.entries()).map(([id, data]) => ({
+      id,
+      type: data.type,
+      userCount: data.users.size
+    }));
+    io.to(roomId).emit('channels-updated', { channels });
+
+    console.log(`Socket ${socket.id} joined channel ${channelId} in room ${roomId}`);
+  });
+
+  // WebRTC signaling (scoped to voice channels)
   socket.on('webrtc-offer', ({ targetId, offer }) => {
     io.to(targetId).emit('webrtc-offer', {
       fromId: socket.id,
@@ -112,10 +216,16 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Text chat messages (optionally with attachments)
+  // Text chat messages (scoped to channels)
   socket.on('chat-message', ({ text, attachment }) => {
     const roomId = socket.data.roomId;
-    if (!roomId) return;
+    const channelId = socket.data.currentChannel;
+    if (!roomId || !channelId) return;
+
+    const room = rooms.get(roomId);
+    if (!room) return;
+    const channel = room.channels.get(channelId);
+    if (!channel || channel.type !== 'text') return;
 
     const safeText = String(text || '').slice(0, 500);
     const hasText = safeText.trim().length > 0;
@@ -136,10 +246,11 @@ io.on('connection', (socket) => {
       displayName: socket.data.displayName || 'Guest',
       text: safeText,
       attachment: safeAttachment,
+      channelId,
       timestamp: Date.now()
     };
 
-    io.to(roomId).emit('chat-message', payload);
+    io.to(`${roomId}:${channelId}`).emit('chat-message', payload);
   });
 
   // Presence: mute state updates
@@ -153,14 +264,37 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    const { roomId } = socket.data;
+    const roomId = socket.data.roomId;
     if (roomId && rooms.has(roomId)) {
-      const peers = rooms.get(roomId);
-      peers.delete(socket.id);
-      if (peers.size === 0) {
-        rooms.delete(roomId);
+      const room = rooms.get(roomId);
+      room.users.delete(socket.id);
+
+      // Leave channel
+      if (socket.data.currentChannel) {
+        const channel = room.channels.get(socket.data.currentChannel);
+        if (channel) {
+          channel.users.delete(socket.id);
+          socket.to(roomId).emit('user-left-channel', {
+            socketId: socket.id,
+            channelId: socket.data.currentChannel
+          });
+        }
       }
-      socket.to(roomId).emit('user-left', { socketId: socket.id });
+
+      // Clean up empty room
+      if (room.users.size === 0) {
+        rooms.delete(roomId);
+      } else {
+        // Update channel user counts
+        const channels = Array.from(room.channels.entries()).map(([id, data]) => ({
+          id,
+          type: data.type,
+          userCount: data.users.size
+        }));
+        io.to(roomId).emit('channels-updated', { channels });
+      }
+
+      socket.to(roomId).emit('user-left-room', { socketId: socket.id });
     }
     console.log('Client disconnected:', socket.id);
   });
@@ -169,4 +303,3 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
   console.log(`RTC FreeChat server listening on http://localhost:${PORT}`);
 });
-

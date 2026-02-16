@@ -3,111 +3,192 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RTC FreeChat - Simple VoIP</title>
+    <title>RTC FreeChat - Discord-like VoIP</title>
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
-    <div class="app">
-      <header class="app-header">
-        <div class="logo">FreeChat</div>
-        <div class="subtitle">The privacy first chat app</div>
-      </header>
+    <!-- Join Screen -->
+    <div class="join-screen" id="join-screen">
+      <div class="join-card">
+        <h1 class="join-title">Welcome to FreeChat</h1>
+        <p class="join-subtitle">Enter your display name to get started</p>
+        <form id="join-form">
+          <input
+            id="display-name-input"
+            type="text"
+            placeholder="Display Name"
+            required
+            autocomplete="off"
+          />
+          <button type="submit" id="join-button">Continue</button>
+        </form>
+      </div>
+    </div>
 
-      <main class="app-main">
-        <section class="card join-card">
-          <h2>Join a room</h2>
-          <form id="join-form">
-            <label>
-              Display name
+    <!-- Main App (Discord-like layout) -->
+    <div class="app hidden" id="app">
+      <!-- Left Sidebar: Channels -->
+      <aside class="sidebar-left">
+        <div class="server-header">
+          <div class="server-icon">FC</div>
+          <div class="server-name">FreeChat</div>
+        </div>
+        <div class="channels-section">
+          <div class="channels-header">
+            <span>CHANNELS</span>
+            <button class="icon-button" id="create-channel-btn" title="Create Channel">+</button>
+          </div>
+          <div class="channel-category">
+            <div class="category-header">
+              <span>📢 TEXT CHANNELS</span>
+            </div>
+            <ul class="channel-list" id="text-channels-list"></ul>
+          </div>
+          <div class="channel-category">
+            <div class="category-header">
+              <span>🔊 VOICE CHANNELS</span>
+            </div>
+            <ul class="channel-list" id="voice-channels-list"></ul>
+          </div>
+        </div>
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar"></div>
+          <div class="user-details">
+            <div class="user-name" id="user-name">Guest</div>
+            <div class="user-status">Online</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <!-- Channel Header -->
+        <header class="channel-header">
+          <div class="channel-header-left">
+            <button class="mobile-menu-button" id="mobile-menu-button" title="Menu">☰</button>
+            <span class="channel-icon" id="current-channel-icon">#</span>
+            <span class="channel-name" id="current-channel-name">Select a channel</span>
+          </div>
+          <div class="channel-header-right">
+            <button class="icon-button mobile-members-button" id="mobile-members-button" title="Members">👥</button>
+            <button class="icon-button" id="mute-button" disabled title="Mute/Unmute">🔇</button>
+            <button class="icon-button" id="leave-button" disabled title="Leave">Leave</button>
+          </div>
+        </header>
+
+        <!-- Chat Messages Area (for text channels) -->
+        <div class="messages-area" id="messages-area">
+          <div class="messages-container" id="chat-messages"></div>
+          <form id="chat-form" class="chat-form">
+            <input
+              id="chat-file-input"
+              type="file"
+              class="chat-file-input hidden"
+              title="Attach a file"
+            />
+            <div class="chat-input-wrapper">
+              <button
+                type="button"
+                class="chat-icon-button"
+                id="emoji-button"
+                title="Add emoji"
+              >
+                😀
+              </button>
+              <button
+                type="button"
+                class="chat-icon-button"
+                id="file-button"
+                title="Attach file"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                </svg>
+              </button>
               <input
-                id="display-name-input"
+                id="chat-input"
                 type="text"
-                placeholder="e.g. Alex"
-                required
+                placeholder="Type a message..."
+                autocomplete="off"
               />
-            </label>
-            <label>
-              Room ID
-              <input
-                id="room-id-input"
-                type="text"
-                placeholder="e.g. study-group"
-                required
-              />
-            </label>
-            <button type="submit" id="join-button">Join voice room</button>
-            <p class="hint">
-              Share the same Room ID with your friends so you can talk together.
-            </p>
+              <button type="submit" class="send-button">Send</button>
+            </div>
           </form>
-        </section>
-
-        <section class="card room-card hidden" id="room-card">
-          <div class="room-header">
-            <div>
-              <h2 id="room-title">Room</h2>
-              <p class="status" id="status-text">Not connected</p>
+          <div id="chat-file-name" class="chat-file-name"></div>
+          <label class="compress-toggle">
+            <input type="checkbox" id="compress-images-checkbox" checked />
+            <span>Compress images</span>
+          </label>
+          <!-- Emoji Picker -->
+          <!-- WhatsApp-style Emoji Picker -->
+          <div class="emoji-picker hidden" id="emoji-picker">
+            <div class="emoji-picker-search">
+              <input
+                type="text"
+                id="emoji-search-input"
+                placeholder="Search emojis..."
+                autocomplete="off"
+              />
             </div>
-            <div class="room-actions">
-              <button id="mute-button" disabled>Mute</button>
-              <button id="leave-button" class="danger" disabled>Leave</button>
-            </div>
+            <div class="emoji-picker-content" id="emoji-picker-content"></div>
+            <div class="emoji-picker-tabs" id="emoji-picker-tabs"></div>
           </div>
+        </div>
 
-          <div class="room-body">
-            <div class="room-left">
-              <div class="participants">
-                <h3>Participants</h3>
-                <ul id="participants-list"></ul>
-              </div>
-              <div class="info">
-                <h3>Tips</h3>
-                <ul>
-                  <li>Use headphones to avoid echo.</li>
-                  <li>Mute yourself when not speaking.</li>
-                  <li>Share the room ID with friends to join.</li>
-                </ul>
-              </div>
-              <label class="ptt-toggle">
-                <input type="checkbox" id="ptt-checkbox" />
-                <span>Push-to-talk (hold Space to talk)</span>
-              </label>
-            </div>
-            <div class="chat">
-              <h3>Text chat</h3>
-              <div id="chat-messages" class="chat-messages"></div>
-              <form id="chat-form" class="chat-form">
-                <input
-                  id="chat-file-input"
-                  type="file"
-                  class="chat-file-input"
-                  title="Attach a file"
-                />
-                <input
-                  id="chat-input"
-                  type="text"
-                  placeholder="Type a message and press Enter"
-                  autocomplete="off"
-                />
-                <button type="submit">Send</button>
-              </form>
-              <div id="chat-file-name" class="chat-file-name"></div>
-              <label class="compress-toggle">
-                <input type="checkbox" id="compress-images-checkbox" checked />
-                <span>Compress images before upload (saves bandwidth)</span>
-              </label>
-            </div>
+        <!-- Voice Area (for voice channels) -->
+        <div class="voice-area hidden" id="voice-area">
+          <div class="voice-participants" id="voice-participants"></div>
+          <div class="voice-controls">
+            <label class="ptt-toggle">
+              <input type="checkbox" id="ptt-checkbox" />
+              <span>Push-to-talk (hold Space)</span>
+            </label>
+            <div class="status-text" id="status-text">Not connected</div>
           </div>
-        </section>
+        </div>
       </main>
 
-      <footer class="app-footer">
-        Built with WebRTC + Socket.IO
-      </footer>
+      <!-- Right Sidebar: Members -->
+      <aside class="sidebar-right">
+        <div class="members-header">
+          <span>MEMBERS</span>
+          <span class="member-count" id="member-count">0</span>
+        </div>
+        <div class="members-list" id="members-list"></div>
+      </aside>
+    </div>
+
+    <!-- Create Channel Modal -->
+    <div class="modal-overlay hidden" id="create-channel-modal">
+      <div class="modal">
+        <h2>Create Channel</h2>
+        <form id="create-channel-form">
+          <label>
+            Channel Name
+            <input
+              id="channel-name-input"
+              type="text"
+              placeholder="e.g. general"
+              required
+              autocomplete="off"
+            />
+          </label>
+          <label>
+            Channel Type
+            <select id="channel-type-select">
+              <option value="text">Text Channel</option>
+              <option value="voice">Voice Channel</option>
+            </select>
+          </label>
+          <div class="modal-actions">
+            <button type="button" class="cancel-btn" id="cancel-channel-btn">Cancel</button>
+            <button type="submit" class="create-btn">Create</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="/app.js"></script>
   </body>
 </html>
-
