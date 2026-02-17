@@ -28,14 +28,14 @@ const storage = multer.diskStorage({
     const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname || '');
     cb(null, unique + ext);
-  }
+  },
 });
 
 const upload = multer({
   storage,
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10 MB
-  }
+    fileSize: 10 * 1024 * 1024, // 10 MB
+  },
 });
 
 app.use('/uploads', express.static(uploadsDir));
@@ -49,7 +49,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
     url: `/uploads/${req.file.filename}`,
     originalName: req.file.originalname || 'file',
     mimeType: req.file.mimetype || 'application/octet-stream',
-    size: req.file.size
+    size: req.file.size,
   };
 
   res.json(fileInfo);

@@ -25,25 +25,25 @@ RTC FreeChat is a lightweight yet powerful chat and video conferencing applicati
 
 1. **Clone the repo**
 
-    ```bash
-    git clone https://github.com/NikheelR97/RTC-FreeChat.git
-    cd RTC-FreeChat
-    ```
+   ```bash
+   git clone https://github.com/NikheelR97/RTC-FreeChat.git
+   cd RTC-FreeChat
+   ```
 
 2. **Install dependencies**
 
-    ```bash
-    npm install
-    ```
+   ```bash
+   npm install
+   ```
 
 3. **Start the server**
 
-    ```bash
-    npm run dev
-    ```
+   ```bash
+   npm run dev
+   ```
 
 4. **Open in Browser**
-    Visit `http://localhost:3000`
+   Visit `http://localhost:3000`
 
 ---
 

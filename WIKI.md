@@ -43,19 +43,19 @@ RTC FreeChat is built on a **Vanilla JS + Node.js** stack to ensure maximum perf
 
 The frontend code was recently refactored (Phase 10) for modularity:
 
-| Module | Purpose |
-| :--- | :--- |
-| **`main.js`** | Entry point. Initializes socket, event listeners, and global setup. |
-| **`state.js`** | Centralized state management (Store pattern). |
-| **`ui.js`** | Aggregator file that exports all UI modules. |
-| **`ui-core.js`** | DOM element references and shared utilities. |
-| **`ui-chat.js`** | Chat rendering, message appending, and thread logic. |
-| **`ui-drawers.js`** | Manages the left/right sidebars and gallery drawers. |
-| **`ui-video.js`** | Handles the WebRTC video grid and stream rendering. |
-| **`ui-components.js`** | Reusable UI bits like the Member List and Channel List. |
-| **`socket-client.js`** | Client-side socket event handlers. |
-| **`webrtc.js`** | Core WebRTC logic (PeerConnections, ICE candidates, Streams). |
-| **`sounds.js`** | Web Audio API implementation for sound effects. |
+| Module                 | Purpose                                                             |
+| :--------------------- | :------------------------------------------------------------------ |
+| **`main.js`**          | Entry point. Initializes socket, event listeners, and global setup. |
+| **`state.js`**         | Centralized state management (Store pattern).                       |
+| **`ui.js`**            | Aggregator file that exports all UI modules.                        |
+| **`ui-core.js`**       | DOM element references and shared utilities.                        |
+| **`ui-chat.js`**       | Chat rendering, message appending, and thread logic.                |
+| **`ui-drawers.js`**    | Manages the left/right sidebars and gallery drawers.                |
+| **`ui-video.js`**      | Handles the WebRTC video grid and stream rendering.                 |
+| **`ui-components.js`** | Reusable UI bits like the Member List and Channel List.             |
+| **`socket-client.js`** | Client-side socket event handlers.                                  |
+| **`webrtc.js`**        | Core WebRTC logic (PeerConnections, ICE candidates, Streams).       |
+| **`sounds.js`**        | Web Audio API implementation for sound effects.                     |
 
 ---
 
@@ -65,8 +65,8 @@ The frontend code was recently refactored (Phase 10) for modularity:
 
 1. **Enter**: Type your Display Name and hit "Enter" on the splash screen.
 2. **Navigation**:
-    - **Left Sidebar**: Channel list (Text & Voice).
-    - **Right Sidebar**: Member list (Online users).
+   - **Left Sidebar**: Channel list (Text & Voice).
+   - **Right Sidebar**: Member list (Online users).
 3. **Joining a Channel**: Click any `# channel` to switch text rooms or `🔊 channel` to join a voice call.
 
 ### Using Media
