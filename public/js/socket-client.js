@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { updateChannelList, updateMembersList, updateVoicePanel, appendChatMessage, setStatus, showTyping, hideTyping } from './ui.js';
+import { updateChannelList, updateMembersList, updateVoicePanel, appendChatMessage, setStatus, showTyping, hideTyping, updateMessageReactions, currentThreadId, updateThreadView, updateMessageReplyCount } from './ui.js';
 import { createPeerConnection, cleanupPeer, ensureLocalStream } from './webrtc.js';
 import { sounds } from './sounds.js';
 // import { switchChannel } from './main.js'; // Removed to avoid cycle
@@ -25,6 +25,7 @@ export function setupSocket(socket) {
     socket.off('user-typing');
     socket.off('user-stopped-typing');
     socket.off('chat-message');
+    socket.off('reaction-update');
     socket.off('mute-state');
 
     socket.off('mute-state');
@@ -42,7 +43,7 @@ export function setupSocket(socket) {
 
         state.roomUsers.clear();
         usersData.forEach((u) => {
-            state.roomUsers.set(u.socketId, { displayName: u.displayName });
+            state.roomUsers.set(u.socketId, { displayName: u.displayName, status: u.status || 'online' });
         });
         updateMembersList();
 
@@ -69,7 +70,8 @@ export function setupSocket(socket) {
             users.forEach((user) => {
                 state.remoteParticipants.set(user.socketId, {
                     displayName: user.displayName,
-                    muted: false
+                    muted: false,
+                    status: user.status // Though voice participants track their own muted state
                 });
             });
             updateVoicePanel();
@@ -82,9 +84,17 @@ export function setupSocket(socket) {
         }
     });
 
-    socket.on('user-joined-room', ({ socketId, displayName }) => {
-        state.roomUsers.set(socketId, { displayName });
+    socket.on('user-joined-room', ({ socketId, displayName, status }) => {
+        state.roomUsers.set(socketId, { displayName, status: status || 'online' });
         updateMembersList();
+    });
+
+    socket.on('user-status-update', ({ socketId, status }) => {
+        const user = state.roomUsers.get(socketId);
+        if (user) {
+            user.status = status;
+            updateMembersList(); // Or a more specific update function
+        }
     });
 
     socket.on('user-left-room', ({ socketId }) => {
@@ -112,12 +122,45 @@ export function setupSocket(socket) {
 
     socket.on('chat-message', (payload) => {
         const { socketId, displayName, text, timestamp, attachment, channelId } = payload || {};
+
+        // Store in state
+        if (channelId) {
+            const current = state.channelMessages.get(channelId) || [];
+            current.push(payload);
+            state.channelMessages.set(channelId, current);
+        }
+
         if (channelId === state.currentTextChannelId) {
-            appendChatMessage({ socketId, displayName, text, timestamp, attachment });
+            appendChatMessage({
+                ...payload,
+                isOwnMessage: payload.socketId === state.socket.id
+            });
             if (socketId !== state.socket.id) {
                 sounds.message();
             }
         }
+    });
+
+    socket.on('reaction-update', ({ messageId, reactions }) => {
+        updateMessageReactions(messageId, reactions);
+    });
+
+    socket.on('thread-updated', ({ parentId, replies }) => {
+        if (currentThreadId === parentId) {
+            updateThreadView(replies);
+        }
+    });
+
+    socket.on('thread-history', ({ parentId, replies }) => {
+        if (currentThreadId === parentId) {
+            updateThreadView(replies);
+        }
+        // Also update the main message reply count, as we now have the latest truth
+        updateMessageReplyCount(parentId, replies.length);
+    });
+
+    socket.on('message-updated', ({ id, replyCount }) => {
+        updateMessageReplyCount(id, replyCount);
     });
 
     socket.on('webrtc-offer', async ({ fromId, offer, displayName }) => {
@@ -129,6 +172,10 @@ export function setupSocket(socket) {
             }
             const pc = createPeerConnection(fromId, displayName, false);
             await pc.setRemoteDescription(new RTCSessionDescription(offer));
+
+            // Check if remote description has video
+            // Reverted: This was causing audio-only participants to be removed
+
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
             socket.emit('webrtc-answer', {
@@ -146,6 +193,8 @@ export function setupSocket(socket) {
         if (!pc) return;
         try {
             await pc.setRemoteDescription(new RTCSessionDescription(answer));
+
+            // Reverted: This was causing audio-only participants to be removed
         } catch (err) {
             console.error('Error setting remote answer:', err);
         }
@@ -162,12 +211,28 @@ export function setupSocket(socket) {
     });
 
     socket.on('message-history', ({ channelId, messages }) => {
+        // Store in state
+        state.channelMessages.set(channelId, messages);
+
         if (channelId === state.currentTextChannelId) {
-            messages.forEach(msg => {
-                appendChatMessage(msg);
-            });
-            // Scroll to bottom
+            // Clear current view
             const chatMessages = document.getElementById('chat-messages');
+            if (chatMessages) {
+                chatMessages.innerHTML = '';
+                // Add welcome message or spacer
+                const spacer = document.createElement('div');
+                spacer.style.height = '20px';
+                chatMessages.appendChild(spacer);
+            }
+
+            messages.forEach((msg) => {
+                appendChatMessage({
+                    ...msg,
+                    isOwnMessage: msg.socketId === state.socket.id
+                });
+            });
+
+            // Scroll to bottom
             if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     });
@@ -189,8 +254,6 @@ export function setupSocket(socket) {
             if (user) hideTyping(user.displayName);
         }
     });
-
-
 
     socket.on('mute-state', ({ socketId, muted }) => {
         const info = state.remoteParticipants.get(socketId);

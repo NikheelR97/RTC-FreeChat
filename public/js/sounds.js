@@ -1,7 +1,11 @@
 export const sounds = {
     message: () => playTone(800, 'sine', 0.1),
     join: () => playSequence([{ freq: 400, type: 'sine', duration: 0.1 }, { freq: 600, type: 'sine', duration: 0.1 }]),
-    leave: () => playSequence([{ freq: 600, type: 'sine', duration: 0.1 }, { freq: 400, type: 'sine', duration: 0.1 }])
+    leave: () => playSequence([{ freq: 600, type: 'sine', duration: 0.1 }, { freq: 400, type: 'sine', duration: 0.1 }]),
+    init: () => {
+        const ctx = getContext();
+        if (ctx.state === 'suspended') ctx.resume();
+    }
 };
 
 let audioCtx = null;

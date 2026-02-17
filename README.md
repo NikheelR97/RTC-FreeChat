@@ -1,77 +1,58 @@
-# RTC FreeChat – Advanced VoIP & Text Rooms
+# RTC FreeChat v1.1 🚀
 
-RTC FreeChat is a feature-rich voice and text chat web application. It supports simultaneous voice and text channels, file uploads, and works seamlessly on mobile devices. Built with WebRTC for audio and Socket.IO for real-time signaling.
+> **A premium, real-time communication platform built with the Fluidverse design philosophy.**
 
-> This is a learning / prototype app, demonstrating modern web app architecture.
+![Status](https://img.shields.io/badge/Status-Active_Development-success)
+![Tech](https://img.shields.io/badge/Tech-WebRTC_%7C_Socket.io_%7C_Vanilla_JS-blue)
 
-## Features
+RTC FreeChat is a lightweight yet powerful chat and video conferencing application. It aims to provide a "Discord-like" experience using only native web technologies—no heavy frameworks like React or Angular, just pure performance.
 
-- **Simultaneous Chat**: Join a voice channel while browsing text channels.
-- **Voice & Text Channels**: dedicated channels for different topics.
-- **Sidebar Controls**: Persistent voice controls (Mute, Deafen, Disconnect) in the sidebar.
-- **File Uploads**: Share images and files in text chat.
-- **Message Persistence**: Chat history (last 50 messages) is saved per channel.
-- **Mobile Friendly**: Fully responsive UI with collapsible sidebars and touch-optimized controls.
-- **WebRTC Audio**: Low-latency peer-to-peer voice chat.
-- **Push-to-Talk**: Optional PTT mode holding Spacebar.
+---
 
-## Prerequisites
+## ✨ Features at a Glance
 
-- [Node.js](https://nodejs.org/) 18+ (LTS recommended)
+- **Zero-Lag Chat**: Instant messaging with threads and reactions.
+- **Crystal Clear Calls**: P2P Voice & Video powered by WebRTC.
+- **Fluid Design**: A beautiful, glassmorphic UI that feels alive.
+- **Media Rich**: Drag-and-drop file sharing with a built-in media gallery.
+- **Privacy Focused**: Direct peer-to-peer streaming for calls.
 
-## Install
+👉 **[Read the Full Wiki](WIKI.md)** for detailed features and architecture.
 
-```bash
-npm install
-```
+---
 
-## Run the app
+## 🚀 Quick Start
 
-### Development (auto-restart on changes)
+1. **Clone the repo**
 
-```bash
-npm run dev
-```
+    ```bash
+    git clone https://github.com/NikheelR97/RTC-FreeChat.git
+    cd RTC-FreeChat
+    ```
 
-### Production-style
+2. **Install dependencies**
 
-```bash
-npm start
-```
+    ```bash
+    npm install
+    ```
 
-By default the server starts on `http://localhost:3000`.
+3. **Start the server**
 
-## usage
+    ```bash
+    npm run dev
+    ```
 
-1. Visit `http://localhost:3000` in your browser.
-2. Enter a **Display Name** to join.
-3. **Channels**:
-   - Click a **#text-channel** to chat.
-   - Click a **🔊 voice-channel** to join the conversation.
-   - You can be in one text and one voice channel at the same time!
-4. **Voice Controls**:
-   - Use the panel at the bottom of the left sidebar to **Mute** or **Disconnect**.
-5. **Mobile**:
-   - Use the hamburger menu (top left) to access channels.
-   - Use the members icon (top right) to see who is online.
+4. **Open in Browser**
+    Visit `http://localhost:3000`
 
-## Project Structure
+---
 
-The codebase is modular and organized for maintainability:
+## 🛠️ Tech Stack
 
-- **Backend** (`server/`)
-  - `server.js`: Entry point, Express & Socket.IO setup.
-  - `server/state/rooms.js`: In-memory state management for rooms/channels/users.
-  - `server/socket/socketHandler.js`: Socket.IO event handlers.
+- **Frontend**: Vanilla JavaScript (ES Modules), CSS3 Variables.
+- **Backend**: Node.js, Express.
+- **Real-time**: Socket.io, WebRTC (RTCPeerConnection).
 
-- **Frontend** (`public/js/`)
-  - `main.js`: Application entry point.
-  - `ui.js`: DOM manipulation and UI updates.
-  - `state.js`: Client-side state management.
-  - `socket-client.js`: Socket.IO event logic.
-  - `webrtc.js`: WebRTC peer connection logic.
+## 📄 License
 
-## Notes & Limitations
-
-- **Persistence**: Rooms and messages are stored in-memory and will reset if the server restarts.
-- **Scaling**: Uses a full-mesh WebRTC topology; best for small to medium groups (up to ~10 users per voice channel).
+MIT License. Free to use and modify.

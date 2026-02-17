@@ -12,7 +12,13 @@ export const state = {
     roomUsers: new Map(), // socketId -> { displayName }
     remoteParticipants: new Map(), // socketId -> { displayName, muted }
     peerConnections: new Map(),
-    peerAudioElements: new Map()
+    peerAudioElements: new Map(),
+    peerVideoElements: new Map(), // socketId -> videoElement
+    isVideoEnabled: false,
+    isScreenSharing: false,
+    screenStream: null,
+    channelMessages: new Map(), // channelId -> [messages]
+    isSoundEnabled: true
 };
 
 export function setSocket(socket) {

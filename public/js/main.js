@@ -1,19 +1,127 @@
 import { state, setSocket, setLocalStream } from './state.js';
-import { elements, updateChannelList, updateMembersList, updateVoicePanel, openMobileSidebar, closeMobileSidebars, setStatus } from './ui.js';
+import { elements, updateChannelList, updateMembersList, updateVoicePanel, openMobileSidebar, closeMobileSidebars, setStatus, createStatusPicker, currentThreadId, closeThread, toggleMembers } from './ui.js';
 import { escapeHtml, getInitials, compressImageFile } from './utils.js';
 import { ensureLocalStream, joinVoiceChannel, leaveVoiceChannel, cleanupAllPeers } from './webrtc.js';
+
 import { setupSocket } from './socket-client.js';
+import { sounds } from './sounds.js';
 import { setupEmojiPicker } from './emoji.js';
 import { setupGifPicker } from './gif.js';
+import { setupCommandPalette } from './command-palette.js';
+import { setupDragDrop } from './drag-drop.js';
+
+import { setupGestures } from './gestures.js';
 
 // Setup Pickers
 setupEmojiPicker();
 setupGifPicker();
+setupGestures();
+setupDragDrop(handleFileSelect);
+createStatusPicker();
+
+
+// Import AFTER switchChannel is defined/exported or just pass it?
+// We need to wait for switchChannel to be defined if we pass it? 
+// switchChannel is a function declaration below, so it is hoisted.
+setupCommandPalette(switchChannel);
 
 // Expose switchChannel to window for UI callbacks (avoid cyclic dependency issues in simple setup)
 window.switchChannel = switchChannel;
 
-// DOM Event Listeners
+
+
+let pendingAttachment = null;
+
+function handleFileSelect(file) {
+    if (!file) return;
+    pendingAttachment = file;
+
+    // Show Preview
+    if (elements.filePreviewArea) {
+        elements.filePreviewArea.classList.remove('hidden');
+        elements.previewFilename.textContent = file.name;
+
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                elements.previewImage.src = e.target.result;
+                elements.previewImage.classList.remove('hidden');
+                elements.previewFileIcon.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            elements.previewImage.classList.add('hidden');
+            elements.previewFileIcon.classList.remove('hidden');
+        }
+    }
+}
+
+
+
+// Thread Handling
+if (elements.threadForm) {
+    elements.threadForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const text = elements.threadInput.value;
+        if (!text.trim() || !currentThreadId) return;
+
+        state.socket.emit('send-reply', {
+            channelId: state.currentTextChannelId,
+            parentId: currentThreadId,
+            text
+        });
+
+        elements.threadInput.value = '';
+    });
+}
+
+if (elements.closeThreadBtn) {
+    elements.closeThreadBtn.addEventListener('click', () => {
+        closeThread();
+    });
+}
+
+// Double click to heart
+if (elements.chatMessages) {
+    elements.chatMessages.addEventListener('dblclick', (e) => {
+        const messageDiv = e.target.closest('.chat-message');
+        if (messageDiv && messageDiv.id && messageDiv.id.startsWith('msg-')) {
+            // Prevent reacting to own message
+            if (messageDiv.classList.contains('own-message')) return;
+
+            const messageId = messageDiv.id.replace('msg-', '');
+            // Default heart reaction
+            state.socket.emit('reaction-add', {
+                channelId: state.currentTextChannelId,
+                messageId: messageId,
+                emoji: '❤️'
+            });
+
+            // Visual feedback?
+            // createFloatingHeart(e.clientX, e.clientY);
+        }
+    });
+}
+
+function clearAttachment() {
+    pendingAttachment = null;
+    if (elements.filePreviewArea) {
+        elements.filePreviewArea.classList.add('hidden');
+        elements.previewImage.src = '';
+    }
+    if (elements.chatFileInput) elements.chatFileInput.value = '';
+}
+
+if (elements.removeFileBtn) {
+    elements.removeFileBtn.addEventListener('click', (e) => {
+        e.preventDefault(); // Prevent form submit if inside form
+        clearAttachment();
+    });
+}
+
+
+
+
 if (elements.joinForm) {
     elements.joinForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -27,8 +135,8 @@ if (elements.joinForm) {
         if (btn) btn.disabled = true;
 
         state.currentDisplayName = displayName;
-        elements.userName.textContent = displayName;
-        elements.userAvatar.textContent = getInitials(displayName);
+        if (elements.currentUserName) elements.currentUserName.textContent = displayName;
+        if (elements.currentUserAvatar) elements.currentUserAvatar.textContent = getInitials(displayName);
 
         // Connect socket
         const socket = io();
@@ -71,16 +179,20 @@ if (elements.createChannelForm) {
     });
 }
 
-// Mobile sidebars
-if (elements.mobileMenuButton && elements.sidebarLeft) {
-    elements.mobileMenuButton.addEventListener('click', () => {
-        openMobileSidebar(elements.sidebarLeft);
+// Drawer Toggles (Mobile & Desktop triggers)
+// Note: Gestures also handle this, but buttons are good for accessibility/desktop
+if (elements.menuButton && elements.drawerLeft) {
+    elements.menuButton.addEventListener('click', () => {
+        // Toggle class on body or use openMobileSidebar export
+        // openMobileSidebar(elements.drawerLeft); 
+        // Using body class directly to match gestures.js style
+        document.body.classList.toggle('drawer-open-left');
     });
 }
 
-if (elements.mobileMembersButton && elements.sidebarRight) {
-    elements.mobileMembersButton.addEventListener('click', () => {
-        openMobileSidebar(elements.sidebarRight);
+if (elements.membersButton) {
+    elements.membersButton.addEventListener('click', () => {
+        toggleMembers();
     });
 }
 
@@ -105,6 +217,32 @@ if (elements.voiceDisconnectBtn) {
 
 if (elements.muteButton) {
     elements.muteButton.addEventListener('click', toggleMute);
+}
+
+if (elements.cameraButton) {
+    elements.cameraButton.addEventListener('click', async () => {
+        const webrtc = await import('./webrtc.js');
+        const isEnabled = await webrtc.toggleVideo();
+        elements.cameraButton.style.background = isEnabled ? 'var(--accent)' : 'transparent';
+        elements.cameraButton.style.color = isEnabled ? '#fff' : 'var(--text-main)';
+    });
+}
+
+if (elements.screenShareButton) {
+    elements.screenShareButton.addEventListener('click', async () => {
+        const webrtc = await import('./webrtc.js');
+        if (state.isScreenSharing) {
+            webrtc.stopScreenShare();
+            elements.screenShareButton.style.background = 'transparent';
+            elements.screenShareButton.style.color = 'var(--text-main)';
+        } else {
+            const success = await webrtc.startScreenShare();
+            if (success) {
+                elements.screenShareButton.style.background = 'var(--danger)';
+                elements.screenShareButton.style.color = '#fff';
+            }
+        }
+    });
 }
 
 if (elements.pttCheckbox) {
@@ -169,19 +307,27 @@ if (elements.chatForm) {
         if (!state.socket || !state.socket.connected || !state.currentTextChannelId) return;
 
         const text = elements.chatInput.value.trim();
-        const file = elements.chatFileInput && elements.chatFileInput.files[0];
+        // Check for pending attachment from DragDrop OR File Input
+        // (FileInput change listener should update pendingAttachment actually)
+
+        let fileToUpload = pendingAttachment;
+
+        if (!fileToUpload && elements.chatFileInput && elements.chatFileInput.files[0]) {
+            fileToUpload = elements.chatFileInput.files[0];
+        }
+
         let attachment = null;
 
-        if (file) {
-            let uploadFile = file;
+        if (fileToUpload) {
+            let uploadFile = fileToUpload;
             if (
-                file.type &&
-                file.type.startsWith('image/') &&
-                elements.compressImagesCheckbox &&
+                fileToUpload.type &&
+                fileToUpload.type.startsWith('image/') &&
+                elements.compressImagesCheckbox && // Checkbox might be missing in new UI, handle gracefully
                 elements.compressImagesCheckbox.checked
             ) {
                 try {
-                    const compressed = await compressImageFile(file, 960, 0.7);
+                    const compressed = await compressImageFile(fileToUpload, 960, 0.7);
                     if (compressed) {
                         uploadFile = compressed;
                     }
@@ -193,6 +339,7 @@ if (elements.chatForm) {
             const formData = new FormData();
             formData.append('file', uploadFile);
             try {
+                // Show uploading state?
                 const res = await fetch('/upload', {
                     method: 'POST',
                     body: formData
@@ -210,8 +357,7 @@ if (elements.chatForm) {
         state.socket.emit('chat-message', { text, attachment });
         state.socket.emit('stop-typing', { channelId: state.currentTextChannelId });
         elements.chatInput.value = '';
-        if (elements.chatFileInput) elements.chatFileInput.value = '';
-        if (elements.chatFileName) elements.chatFileName.textContent = '';
+        clearAttachment();
     });
 
     // Typing emission
@@ -252,9 +398,7 @@ if (elements.fileButton && elements.chatFileInput) {
     elements.chatFileInput.addEventListener('change', () => {
         const file = elements.chatFileInput.files[0];
         if (file) {
-            if (elements.chatFileName) elements.chatFileName.textContent = `Attachment: ${file.name}`;
-        } else {
-            if (elements.chatFileName) elements.chatFileName.textContent = '';
+            handleFileSelect(file);
         }
     });
 }

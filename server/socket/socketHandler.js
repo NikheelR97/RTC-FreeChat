@@ -6,34 +6,64 @@ module.exports = (io) => {
 
         // Join a room (like joining a server)
         socket.on('join-room', ({ roomId, displayName }) => {
+            // Store user info
             socket.data.roomId = roomId;
             socket.data.displayName = displayName || 'Guest';
+            socket.data.status = 'online'; // Default status
             socket.data.currentTextChannel = null;
             socket.data.currentVoiceChannel = null;
 
             const room = getOrCreateRoom(roomId);
-            room.users.set(socket.id, socket.data.displayName);
+            // Add to room
+            room.users.set(socket.id, {
+                socketId: socket.id,
+                displayName: socket.data.displayName,
+                status: socket.data.status
+            });
             socket.join(roomId);
 
-            // Send room info (channels and users)
-            const channels = Array.from(room.channels.entries()).map(([id, data]) => ({
+            // Send room info to client
+            const channelsData = Array.from(room.channels.entries()).map(([id, data]) => ({
                 id,
                 type: data.type,
                 userCount: data.users.size
             }));
 
-            const users = Array.from(room.users.entries()).map(([socketId, name]) => ({
-                socketId,
-                displayName: name
-            }));
+            const usersData = Array.from(room.users.values());
 
-            socket.emit('room-info', { channels, users });
+            socket.emit('room-info', {
+                channels: channelsData,
+                users: usersData
+            });
+
+            // Notify others
             socket.to(roomId).emit('user-joined-room', {
                 socketId: socket.id,
-                displayName: socket.data.displayName
+                displayName: socket.data.displayName,
+                status: socket.data.status
             });
 
             console.log(`Socket ${socket.id} joined room ${roomId}`);
+        });
+
+        // Status Change
+        socket.on('status-change', ({ status }) => {
+            const roomId = socket.data.roomId;
+            if (!roomId || !['online', 'idle', 'dnd', 'offline'].includes(status)) return;
+
+            const room = rooms.get(roomId);
+            if (!room) return;
+
+            const user = room.users.get(socket.id);
+            if (user) {
+                user.status = status;
+                socket.data.status = status; // Update socket data as well
+                // Broadcast update
+                io.to(roomId).emit('user-status-update', {
+                    socketId: socket.id,
+                    status
+                });
+            }
         });
 
         // Create a new channel
@@ -236,13 +266,18 @@ module.exports = (io) => {
                 }
                 : undefined;
 
+            const messageId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+
             const payload = {
+                id: messageId,
                 socketId: socket.id,
                 displayName: socket.data.displayName || 'Guest',
                 text: safeText,
                 attachment: safeAttachment,
                 channelId,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                reactions: {}, // { '❤️': { count: 0, users: [] } }
+                replies: []
             };
 
             // Store message in history
@@ -257,6 +292,113 @@ module.exports = (io) => {
             io.to(`${roomId}:${channelId}`).emit('chat-message', payload);
         });
 
+        // Thread Reply
+        socket.on('send-reply', ({ channelId, parentId, text }) => {
+            const roomId = socket.data.roomId;
+            console.log('[Server] send-reply', { roomId, channelId, parentId, text });
+
+            if (!roomId || !channelId || !parentId || !text) {
+                console.error('[Server] Missing data for reply');
+                return;
+            }
+
+            const room = rooms.get(roomId);
+            if (!room) {
+                console.error('[Server] Room not found', roomId);
+                return;
+            }
+            const channel = room.channels.get(channelId);
+            if (!channel || !channel.messages) return;
+
+            const parentMessage = channel.messages.find(m => m.id === parentId);
+            if (!parentMessage) {
+                console.error('[Server] Parent message not found', parentId);
+                return;
+            }
+
+            if (!parentMessage.replies) parentMessage.replies = [];
+
+            const reply = {
+                id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+                parentId,
+                socketId: socket.id,
+                displayName: socket.data.displayName || 'Guest',
+                text: String(text).slice(0, 500),
+                timestamp: Date.now()
+            };
+
+            parentMessage.replies.push(reply);
+
+            // Broadcast thread update to anyone viewing the thread
+            // io.to(roomId) should work if users are in the room.
+            io.to(roomId).emit('thread-updated', {
+                parentId,
+                replies: parentMessage.replies
+            });
+
+            // Update main chat to show reply count
+            // Users in channel are in `${roomId}:${channelId}`
+            io.to(`${roomId}:${channelId}`).emit('message-updated', {
+                id: parentId,
+                replyCount: parentMessage.replies.length
+            });
+        });
+
+        // Reactions
+        socket.on('reaction-add', ({ channelId, messageId, emoji }) => {
+            const roomId = socket.data.roomId;
+            if (!roomId || !channelId || !messageId || !emoji) return;
+
+            const room = rooms.get(roomId);
+            if (!room) return;
+            const channel = room.channels.get(channelId);
+            if (!channel || !channel.messages) return;
+
+            const message = channel.messages.find(m => m.id === messageId);
+            if (!message) return;
+
+            if (!message.reactions) message.reactions = {};
+            if (!message.reactions[emoji]) message.reactions[emoji] = { count: 0, users: [] };
+
+            // Check if user already reacted with this emoji
+            if (!message.reactions[emoji].users.includes(socket.id)) {
+                message.reactions[emoji].users.push(socket.id);
+                message.reactions[emoji].count++;
+
+                io.to(`${roomId}:${channelId}`).emit('reaction-update', {
+                    messageId,
+                    reactions: message.reactions
+                });
+            }
+        });
+
+        socket.on('reaction-remove', ({ channelId, messageId, emoji }) => {
+            const roomId = socket.data.roomId;
+            if (!roomId || !channelId || !messageId || !emoji) return;
+
+            const room = rooms.get(roomId);
+            if (!room) return;
+            const channel = room.channels.get(channelId);
+            if (!channel || !channel.messages) return;
+
+            const message = channel.messages.find(m => m.id === messageId);
+            if (!message || !message.reactions || !message.reactions[emoji]) return;
+
+            const userIndex = message.reactions[emoji].users.indexOf(socket.id);
+            if (userIndex !== -1) {
+                message.reactions[emoji].users.splice(userIndex, 1);
+                message.reactions[emoji].count--;
+                if (message.reactions[emoji].count <= 0) {
+                    delete message.reactions[emoji];
+                }
+
+                io.to(`${roomId}:${channelId}`).emit('reaction-update', {
+                    messageId,
+                    reactions: message.reactions
+                });
+            }
+        });
+
         // Presence: mute state updates
         socket.on('mute-state', ({ muted }) => {
             const roomId = socket.data.roomId;
@@ -265,6 +407,25 @@ module.exports = (io) => {
                 socketId: socket.id,
                 muted: !!muted
             });
+        });
+
+        // Get Thread History
+        socket.on('get-thread', ({ channelId, messageId }) => {
+            const roomId = socket.data.roomId;
+            if (!roomId || !channelId || !messageId) return;
+
+            const room = rooms.get(roomId);
+            if (!room) return;
+            const channel = room.channels.get(channelId);
+            if (!channel || !channel.messages) return;
+
+            const message = channel.messages.find(m => m.id === messageId);
+            if (message) {
+                socket.emit('thread-history', {
+                    parentId: messageId,
+                    replies: message.replies || []
+                });
+            }
         });
 
         // Typing Indicators
