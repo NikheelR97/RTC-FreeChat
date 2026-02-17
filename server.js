@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+/* eslint-disable no-console */
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');

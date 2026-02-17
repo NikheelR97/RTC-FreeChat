@@ -1,10 +1,9 @@
 import { state } from './state.js';
 import { rtcConfig } from './constants.js';
-import { elements, updateVoicePanel, renderVideo, removeVideo, setSpeaking } from './ui.js';
+import { updateVoicePanel, renderVideo, removeVideo, setSpeaking } from './ui.js';
 
 let audioContext;
 const analysers = new Map(); // peerId -> AnalyserNode
-const speakingThreshold = -50; // dB
 let checkSpeakingInterval;
 
 function initAudioContext() {
@@ -82,10 +81,10 @@ export async function ensureLocalStream(video = false) {
       },
       video: video
         ? {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: 'user',
-          }
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user',
+        }
         : false,
     });
 

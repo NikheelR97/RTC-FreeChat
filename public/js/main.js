@@ -1,12 +1,8 @@
-import { state, setSocket, setLocalStream } from './state.js';
+import { state, setSocket } from './state.js';
 import {
   elements,
   updateChannelList,
-  updateMembersList,
   updateVoicePanel,
-  openMobileSidebar,
-  closeMobileSidebars,
-  setStatus,
   createStatusPicker,
   currentThreadId,
   closeThread,

@@ -1,5 +1,6 @@
 const { rooms, getOrCreateRoom } = require('../state/rooms');
 
+/* eslint-disable no-console */
 module.exports = (io) => {
   io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
@@ -263,11 +264,11 @@ module.exports = (io) => {
 
       const safeAttachment = hasAttachment
         ? {
-            url: String(attachment.url),
-            originalName: String(attachment.originalName || 'file').slice(0, 120),
-            mimeType: String(attachment.mimeType || 'application/octet-stream'),
-            size: Number(attachment.size || 0),
-          }
+          url: String(attachment.url),
+          originalName: String(attachment.originalName || 'file').slice(0, 120),
+          mimeType: String(attachment.mimeType || 'application/octet-stream'),
+          size: Number(attachment.size || 0),
+        }
         : undefined;
 
       const messageId = Date.now().toString(36) + Math.random().toString(36).substr(2);

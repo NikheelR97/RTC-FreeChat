@@ -133,7 +133,7 @@ export function setupSocket(socket) {
   // ... webrtc handlers ...
 
   socket.on('chat-message', (payload) => {
-    const { socketId, displayName, text, timestamp, attachment, channelId } = payload || {};
+    const { channelId, socketId } = payload || {};
 
     // Store in state
     if (channelId) {

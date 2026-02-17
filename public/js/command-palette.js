@@ -1,6 +1,5 @@
 import { state } from './state.js';
-import { elements } from './ui.js';
-import { leaveVoiceChannel, cleanupAllPeers } from './webrtc.js';
+
 
 export function setupCommandPalette(switchChannel) {
   const modal = document.getElementById('command-palette-modal');

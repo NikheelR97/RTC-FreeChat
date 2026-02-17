@@ -45,7 +45,7 @@ export function updateMembersList() {
   elements.membersList.innerHTML = '';
   let count = 0;
 
-  state.roomUsers.forEach((user, socketId) => {
+  state.roomUsers.forEach((user, _socketId) => {
     count++;
     const div = document.createElement('div');
     div.className = 'member-item';
@@ -123,19 +123,30 @@ export function createStatusPicker() {
   drawerLeft.appendChild(container); // Append to bottom for now
 }
 
-export function updateVoicePanel() {
+export function updateVoicePanel(participants) {
   if (!elements.voicePanel) return;
-  // Update Voice Control Visibility
+
+  const container = elements.voicePanel;
+  container.innerHTML = '<h3>Voice Channel</h3>';
+
   if (state.currentVoiceChannelId) {
     elements.voicePanel.classList.remove('hidden');
     if (elements.voiceChannelName)
       elements.voiceChannelName.textContent = state.currentVoiceChannelId;
+
+    if (participants.size === 0) {
+      container.innerHTML += '<div class="empty-state">No one is here</div>';
+    } else {
+      participants.forEach((p, _socketId) => {
+        // ... render logic ...
+      });
+    }
   } else {
     elements.voicePanel.classList.add('hidden');
   }
 }
 
-export function setStatus(msg) {
+export function setStatus(_msg) {
   // console.log(msg);
 }
 
@@ -146,7 +157,7 @@ export function showTyping(displayName) {
   }
 }
 
-export function hideTyping(displayName) {
+export function hideTyping(_displayName) {
   if (elements.typingIndicator) {
     elements.typingIndicator.classList.add('hidden');
   }

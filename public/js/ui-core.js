@@ -1,5 +1,4 @@
-import { state } from './state.js';
-import { escapeHtml, getInitials } from './utils.js';
+
 
 export const elements = {
   joinScreen: document.getElementById('join-screen'),
