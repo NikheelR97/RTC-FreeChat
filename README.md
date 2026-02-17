@@ -107,13 +107,13 @@ The codebase is modular and organized for maintainability:
 - [ ] Add support for video chat
 - [ ] Add support for photo/video recording
 - [ ] Add support rich text commands like spoiler filter, redacted text, formatting stuff in text, code blocks, etc.
-- [] File size limits
+- [ ] File size limits
 
 ## Research
-- [] Discord bot integration
-- [] WebRTC screen sharing
-- [] WebRTC video chat
-- [] WebRTC photo/video recording
+- [ ] Discord bot integration
+- [ ] WebRTC screen sharing
+- [ ] WebRTC video chat
+- [ ] WebRTC photo/video recording
 
 ## Contributing
 
