@@ -3,6 +3,8 @@
 > **A premium, real-time communication platform built with the Fluidverse design philosophy.**
 
 ![Status](https://img.shields.io/badge/Status-Active_Development-success)
+![Build](https://github.com/NikheelR97/RTC-FreeChat/actions/workflows/node.js.yml/badge.svg)
+![Lint](https://github.com/NikheelR97/RTC-FreeChat/actions/workflows/lint.yml/badge.svg)
 ![Tech](https://img.shields.io/badge/Tech-WebRTC_%7C_Socket.io_%7C_Vanilla_JS-blue)
 
 RTC FreeChat is a lightweight yet powerful chat and video conferencing application. It aims to provide a "Discord-like" experience using only native web technologies—no heavy frameworks like React or Angular, just pure performance.
@@ -42,7 +44,13 @@ RTC FreeChat is a lightweight yet powerful chat and video conferencing applicati
    npm run dev
    ```
 
-4. **Open in Browser**
+4. **Verify Code Quality** (Optional)
+
+   ```bash
+   npm run lint
+   ```
+
+5. **Open in Browser**
    Visit `http://localhost:3000`
 
 ---

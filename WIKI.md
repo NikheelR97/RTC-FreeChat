@@ -84,7 +84,15 @@ The frontend code was recently refactored (Phase 10) for modularity:
 
 ---
 
-## 🛠️ Development
+### Sound Effects
+
+- **Integrated Audio**: Custom sound engine (`sounds.js`) for immersive feedback.
+- **Events**: Sounds for joining, leaving, messages, and errors.
+- **Controls**: Toggle sounds on/off directly from the settings drawer.
+
+---
+
+## 🛠️ Development & CI/CD
 
 ### Setup
 
@@ -95,6 +103,25 @@ npm install
 # Run development server
 npm run dev
 ```
+
+### Code Quality
+
+We use **ESLint** and **Prettier** to maintain a high standard of code quality.
+
+```bash
+# Run linting
+npm run lint
+
+# Format code
+npm run format
+```
+
+### Continuous Integration
+
+GitHub Actions are configured to automatically run checks on every push:
+
+- **Linting**: Ensures code style and catches errors.
+- **CodeQL**: Scans for security vulnerabilities.
 
 ### Tech Stack
 
