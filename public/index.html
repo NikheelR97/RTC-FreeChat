@@ -1,224 +1,196 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-    <title>RTC FreeChat</title>
-    <link rel="stylesheet" href="/style.css" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
-  </head>
 
-  <body>
-    <!-- Join Screen (Keep existing logic but styled usually via CSS) -->
-    <div class="join-screen" id="join-screen">
-      <div class="join-card glass-panel">
-        <h1 class="join-title">RTC FreeChat</h1>
-        <p class="join-subtitle">Welcome to FreeChat</p>
-        <form id="join-form">
-          <input
-            id="display-name-input"
-            type="text"
-            placeholder="Display Name"
-            required
-            autocomplete="off"
-          />
-          <button type="submit" id="join-button">Enter</button>
-        </form>
-      </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>RTC FreeChat</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+
+<body>
+  <!-- Join Screen (Keep existing logic but styled usually via CSS) -->
+  <div class="join-screen" id="join-screen">
+    <div class="join-card glass-panel">
+      <h1 class="join-title">RTC FreeChat</h1>
+      <p class="join-subtitle">Welcome to FreeChat</p>
+      <form id="join-form">
+        <input id="display-name-input" type="text" placeholder="Display Name" required autocomplete="off" />
+        <button type="submit" id="join-button">Enter</button>
+      </form>
     </div>
+  </div>
 
-    <!-- Neo-Fluid App Layout -->
-    <div class="app hidden" id="app">
-      <!-- Left Drawer (Channels) -->
-      <div class="drawer drawer-left" id="drawer-left">
-        <div
-          class="drawer-header"
-          style="
+  <!-- Neo-Fluid App Layout -->
+  <div class="app hidden" id="app">
+    <!-- Left Drawer (Channels) -->
+    <div class="drawer drawer-left" id="drawer-left">
+      <div class="drawer-header" style="
             padding: 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             display: flex;
             align-items: center;
             justify-content: space-between;
-          "
-        >
-          <h2 style="margin: 0; font-size: 18px">Channels</h2>
-          <button class="icon-button" id="create-channel-btn">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
+          ">
+        <h2 style="margin: 0; font-size: 18px">Channels</h2>
+        <button class="icon-button" id="create-channel-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="drawer-content">
+        <div class="drawer-section">
+          <h3 style="
+                padding: 0 16px;
+                font-size: 12px;
+                text-transform: uppercase;
+                color: var(--text-dim);
+                margin-bottom: 8px;
+              ">
+            Text
+          </h3>
+          <ul class="channel-list" id="text-channels-list" style="list-style: none; padding: 0; margin: 0"></ul>
+        </div>
+        <div class="drawer-section" style="margin-top: 16px">
+          <h3 style="
+                padding: 0 16px;
+                font-size: 12px;
+                text-transform: uppercase;
+                color: var(--text-dim);
+                margin-bottom: 8px;
+              ">
+            Voice
+          </h3>
+          <ul class="channel-list" id="voice-channels-list" style="list-style: none; padding: 0; margin: 0"></ul>
+        </div>
+      </div>
+      <div class="user-profile"
+        style="padding: 16px; border-top: 1px solid rgba(255, 255, 255, 0.05); background: rgba(0,0,0,0.2);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div id="current-user-avatar" style="
+                width: 36px;
+                height: 36px;
+                background: var(--accent);
+                color: white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 600;
+                font-size: 14px;
+                flex-shrink: 0;
+              ">
+            U
+          </div>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+            <span id="current-user-name" style="
+                  font-weight: 600;
+                  font-size: 14px;
+                  color: var(--text-main);
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                ">
+              Guest
+            </span>
+            <div style="
+                  font-size: 11px;
+                  color: var(--text-dim);
+                  display: flex;
+                  align-items: center;
+                  gap: 4px;
+                  margin-top: 2px;
+                ">
+              <div style="
+                    width: 6px;
+                    height: 6px;
+                    border-radius: 50%;
+                    background: var(--status-online);
+                  "></div>
+              Online
+            </div>
+          </div>
+          <button id="logout-btn" class="icon-button" title="Logout" style="padding: 8px; color: var(--text-dim);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
             </svg>
           </button>
         </div>
-        <div class="drawer-content" style="flex: 1; overflow-y: auto; padding: 10px 0">
-          <div class="drawer-section">
-            <h3
-              style="
-                padding: 0 16px;
-                font-size: 12px;
-                text-transform: uppercase;
-                color: var(--text-dim);
-                margin-bottom: 8px;
-              "
-            >
-              Text
-            </h3>
-            <ul
-              class="channel-list"
-              id="text-channels-list"
-              style="list-style: none; padding: 0; margin: 0"
-            ></ul>
-          </div>
-          <div class="drawer-section" style="margin-top: 16px">
-            <h3
-              style="
-                padding: 0 16px;
-                font-size: 12px;
-                text-transform: uppercase;
-                color: var(--text-dim);
-                margin-bottom: 8px;
-              "
-            >
-              Voice
-            </h3>
-            <ul
-              class="channel-list"
-              id="voice-channels-list"
-              style="list-style: none; padding: 0; margin: 0"
-            ></ul>
-          </div>
-        </div>
-        <div style="padding: 16px; border-top: 1px solid rgba(255, 255, 255, 0.05)">
-          <button class="icon-button" id="theme-toggle" title="Toggle Theme">🌓 Theme</button>
-        </div>
       </div>
+    </div>
 
-      <!-- Right Drawer (Members) -->
-      <div class="drawer drawer-right hidden" id="drawer-right">
-        <div
-          class="drawer-header"
-          style="padding: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.05)"
-        >
-          <h2 style="margin: 0; font-size: 18px">
-            Members <span id="member-count" class="badge">0</span>
-          </h2>
-        </div>
-        <div
-          class="drawer-content members-list"
-          id="members-list"
-          style="flex: 1; overflow-y: auto; padding: 10px 0"
-        >
-          <!-- Members injected here -->
-        </div>
+    <!-- Right Drawer (Members) -->
+    <div class="drawer drawer-right hidden" id="drawer-right">
+      <div class="drawer-header" style="padding: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.05)">
+        <h2 style="margin: 0; font-size: 18px">
+          Members <span id="member-count" class="badge">0</span>
+        </h2>
       </div>
+      <div class="drawer-content members-list" id="members-list" style="flex: 1; overflow-y: auto; padding: 10px 0">
+        <!-- Members injected here -->
+      </div>
+    </div>
 
-      <!-- Gallery Drawer -->
-      <div
-        id="drawer-gallery"
-        class="drawer drawer-right hidden"
-        style="background: rgba(20, 20, 30, 0.95)"
-      >
-        <div
-          class="drawer-header"
-          style="
+    <!-- Gallery Drawer -->
+    <div id="drawer-gallery" class="drawer drawer-right hidden" style="background: rgba(20, 20, 30, 0.95)">
+      <div class="drawer-header" style="
             padding: 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             display: flex;
             align-items: center;
             justify-content: space-between;
-          "
-        >
-          <h2 style="margin: 0; font-size: 18px">Media Gallery</h2>
-          <button id="close-gallery-btn" class="icon-button">✕</button>
-        </div>
-        <div
-          class="gallery-tabs"
-          style="display: flex; gap: 8px; padding: 0 16px; margin-bottom: 12px"
-        >
-          <button class="tab-btn active" data-tab="images">Images</button>
-          <button class="tab-btn" data-tab="files">Files</button>
-        </div>
-        <div
-          id="gallery-grid"
-          class="gallery-grid"
-          style="padding: 0 16px; overflow-y: auto; height: calc(100% - 100px)"
-        >
-          <!-- Images/Files injected here -->
-          <div style="text-align: center; color: var(--text-dim); margin-top: 40px">
-            No media found
-          </div>
+          ">
+        <h2 style="margin: 0; font-size: 18px">Media Gallery</h2>
+        <button id="close-gallery-btn" class="icon-button">✕</button>
+      </div>
+      <div class="gallery-tabs" style="display: flex; gap: 8px; padding: 0 16px; margin-bottom: 12px">
+        <button class="tab-btn active" data-tab="images">Images</button>
+        <button class="tab-btn" data-tab="files">Files</button>
+      </div>
+      <div id="gallery-grid" class="gallery-grid" style="padding: 0 16px; overflow-y: auto; height: calc(100% - 100px)">
+        <!-- Images/Files injected here -->
+        <div style="text-align: center; color: var(--text-dim); margin-top: 40px">
+          No media found
         </div>
       </div>
+    </div>
 
-      <!-- Thread Drawer (Right) -->
-      <div class="drawer drawer-right hidden" id="drawer-thread" style="z-index: 101">
-        <div
-          class="drawer-header"
-          style="
+    <!-- Thread Drawer (Right) -->
+    <div class="drawer drawer-right hidden" id="drawer-thread" style="z-index: 101">
+      <div class="drawer-header" style="
             padding: 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             display: flex;
             align-items: center;
             gap: 10px;
-          "
-        >
-          <button class="icon-button" id="close-thread-btn">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <line x1="19" y1="12" x2="5" y2="12"></line>
-              <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-          </button>
-          <h2 style="margin: 0; font-size: 18px">Thread</h2>
-        </div>
-        <div
-          class="drawer-content"
-          id="thread-messages"
-          style="flex: 1; overflow-y: auto; padding: 10px"
-        >
-          <!-- Thread messages injected here -->
-        </div>
-        <div
-          class="thread-input-area"
-          style="padding: 16px; border-top: 1px solid rgba(255, 255, 255, 0.05)"
-        >
-          <form id="thread-form" style="display: flex; gap: 8px">
-            <input
-              id="thread-input"
-              type="text"
-              placeholder="Reply..."
-              autocomplete="off"
-              style="
+          ">
+        <button class="icon-button" id="close-thread-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </button>
+        <h2 style="margin: 0; font-size: 18px">Thread</h2>
+      </div>
+      <div class="drawer-content" id="thread-messages" style="flex: 1; overflow-y: auto; padding: 10px">
+        <!-- Thread messages injected here -->
+      </div>
+      <div class="thread-input-area" style="padding: 16px; border-top: 1px solid rgba(255, 255, 255, 0.05)">
+        <form id="thread-form" style="display: flex; gap: 8px">
+          <input id="thread-input" type="text" placeholder="Reply..." autocomplete="off" style="
                 flex: 1;
                 background: rgba(0, 0, 0, 0.3);
                 border: 1px solid rgba(255, 255, 255, 0.1);
                 padding: 8px 12px;
                 border-radius: 20px;
                 color: white;
-              "
-            />
-            <button
-              type="submit"
-              class="icon-button"
-              style="
+              " />
+          <button type="submit" class="icon-button" style="
                 background: var(--accent);
                 color: white;
                 border-radius: 50%;
@@ -227,134 +199,91 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
-              "
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <!-- Main Viewport -->
-      <main class="fluid-viewport" id="main-viewport">
-        <!-- Dynamic Island (Header) -->
-        <header class="dynamic-island glass-panel">
-          <button class="icon-button" id="menu-btn">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <line x1="3" y1="12" x2="21" y2="12"></line>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <line x1="3" y1="18" x2="21" y2="18"></line>
+              ">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
             </svg>
           </button>
-          <div class="island-content">
-            <span class="channel-name" id="current-channel-name">Select Channel</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px">
-            <button
-              class="icon-button"
-              id="toggle-gallery-btn"
-              title="Media Gallery"
-              onclick="if (window.toggleGallery) window.toggleGallery();"
-            >
-              🖼️
-            </button>
-            <button class="icon-button" id="members-btn">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-            </button>
-            <button class="icon-button" id="theme-toggle-btn" title="Theme">🌓</button>
-          </div>
-        </header>
+        </form>
+      </div>
+    </div>
 
-        <!-- Messages Area -->
-        <div class="messages-scroll-area" id="chat-messages">
-          <!-- Messages injected here -->
+    <!-- Main Viewport -->
+    <main class="fluid-viewport" id="main-viewport">
+      <!-- Dynamic Island (Header) -->
+      <header class="dynamic-island glass-panel">
+        <button class="icon-button" id="menu-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <div class="island-content">
+          <span class="channel-name" id="current-channel-name">Select Channel</span>
         </div>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <button class="icon-button" id="toggle-gallery-btn" title="Media Gallery"
+            onclick="if (window.toggleGallery) window.toggleGallery();">
+            🖼️
+          </button>
+          <button class="icon-button" id="members-btn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </button>
+          <button class="icon-button" id="theme-toggle-btn" title="Theme">🌓</button>
+        </div>
+      </header>
 
-        <!-- Floating Dock (Bottom) -->
-        <div class="floating-dock glass-panel">
-          <!-- File Preview Area -->
-          <div id="file-preview-area" class="file-preview-area hidden">
-            <div class="preview-card">
-              <img id="preview-image" src="" alt="Preview" class="hidden" />
-              <div id="preview-file-icon" class="preview-file-icon hidden">📄</div>
-              <div class="preview-info">
-                <span id="preview-filename">image.png</span>
-                <button id="remove-file-btn" class="icon-button danger">×</button>
-              </div>
+      <!-- Messages Area -->
+      <div class="messages-scroll-area" id="chat-messages">
+        <!-- Messages injected here -->
+      </div>
+
+      <!-- Floating Dock (Bottom) -->
+      <div class="floating-dock glass-panel">
+        <!-- File Preview Area -->
+        <div id="file-preview-area" class="file-preview-area hidden">
+          <div class="preview-card">
+            <img id="preview-image" src="" alt="Preview" class="hidden" />
+            <div id="preview-file-icon" class="preview-file-icon hidden">📄</div>
+            <div class="preview-info">
+              <span id="preview-filename">image.png</span>
+              <button id="remove-file-btn" class="icon-button danger">×</button>
             </div>
           </div>
+        </div>
 
-          <form id="chat-form" class="dock-form">
-            <input id="chat-file-input" type="file" class="hidden" />
+        <form id="chat-form" class="dock-form">
+          <input id="chat-file-input" type="file" class="hidden" />
 
-            <button type="button" class="dock-icon" id="file-button">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"
-                ></path>
-              </svg>
-            </button>
+          <button type="button" class="dock-icon" id="file-button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48">
+              </path>
+            </svg>
+          </button>
 
-            <input id="chat-input" type="text" placeholder="Message..." autocomplete="off" />
+          <input id="chat-input" type="text" placeholder="Message..." autocomplete="off" />
 
-            <button type="button" class="dock-icon" id="emoji-button">😀</button>
+          <button type="button" class="dock-icon" id="emoji-button">😀</button>
 
-            <button type="submit" class="dock-send-btn">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </button>
-          </form>
+          <button type="submit" class="dock-send-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </form>
 
-          <!-- Voice Controls (Mini) -->
-          <div
-            id="voice-panel"
-            class="voice-dock hidden"
-            style="
+        <!-- Voice Controls (Mini) -->
+        <div id="voice-panel" class="voice-dock hidden" style="
               width: 100%;
               display: flex;
               align-items: center;
@@ -362,35 +291,26 @@
               padding-top: 8px;
               border-top: 1px solid rgba(255, 255, 255, 0.1);
               margin-top: 8px;
-            "
-          >
-            <span id="voice-channel-name" style="font-size: 12px; color: var(--accent)">Voice</span>
-            <div style="display: flex; gap: 8px">
-              <button class="icon-button" id="camera-button" title="Toggle Camera">📷</button>
-              <button class="icon-button" id="screen-share-button" title="Share Screen">🖥️</button>
-              <button class="icon-button" id="mute-button" title="Toggle Mic">🔇</button>
-              <button
-                class="icon-button"
-                id="voice-disconnect-btn"
-                style="color: var(--danger)"
-                title="Disconnect"
-              >
-                🚫
-              </button>
-            </div>
+            ">
+          <span id="voice-channel-name" style="font-size: 12px; color: var(--accent)">Voice</span>
+          <div style="display: flex; gap: 8px">
+            <button class="icon-button" id="camera-button" title="Toggle Camera">📷</button>
+            <button class="icon-button" id="screen-share-button" title="Share Screen">🖥️</button>
+            <button class="icon-button" id="mute-button" title="Toggle Mic">🔇</button>
+            <button class="icon-button" id="voice-disconnect-btn" style="color: var(--danger)" title="Disconnect">
+              🚫
+            </button>
           </div>
         </div>
-      </main>
-
-      <!-- Overlays -->
-      <div class="drawer-overlay" id="drawer-overlay"></div>
-      <div class="drop-overlay hidden" id="drop-overlay">
-        <div class="drop-message">Drop to Attach</div>
       </div>
-      <div
-        id="typing-indicator"
-        class="typing-pill hidden"
-        style="
+    </main>
+
+    <!-- Overlays -->
+    <div class="drawer-overlay" id="drawer-overlay"></div>
+    <div class="drop-overlay hidden" id="drop-overlay">
+      <div class="drop-message">Drop to Attach</div>
+    </div>
+    <div id="typing-indicator" class="typing-pill hidden" style="
           position: absolute;
           bottom: 120px;
           left: 50%;
@@ -399,121 +319,96 @@
           padding: 4px 12px;
           border-radius: 12px;
           font-size: 12px;
-        "
-      ></div>
-    </div>
+        "></div>
+  </div>
 
-    <!-- Modals -->
-    <div class="modal-overlay hidden" id="create-channel-modal">
-      <div
-        class="modal glass-panel"
-        style="padding: 24px; border-radius: 16px; width: 90%; max-width: 400px; margin: auto"
-      >
-        <h2 style="margin-top: 0">Create Channel</h2>
-        <form id="create-channel-form" style="display: flex; flex-direction: column; gap: 16px">
-          <input
-            id="channel-name-input"
-            type="text"
-            placeholder="Channel Name"
-            required
-            style="
+  <!-- Modals -->
+  <div class="modal-overlay hidden" id="create-channel-modal">
+    <div class="modal glass-panel"
+      style="padding: 24px; border-radius: 16px; width: 90%; max-width: 400px; margin: auto">
+      <h2 style="margin-top: 0">Create Channel</h2>
+      <form id="create-channel-form" style="display: flex; flex-direction: column; gap: 16px">
+        <input id="channel-name-input" type="text" placeholder="Channel Name" required style="
               padding: 12px;
               background: rgba(0, 0, 0, 0.2);
               border: 1px solid rgba(255, 255, 255, 0.1);
               color: #fff;
               border-radius: 8px;
-            "
-          />
-          <select
-            id="channel-type-select"
-            style="
+            " />
+        <select id="channel-type-select" style="
               padding: 12px;
               background: rgba(0, 0, 0, 0.2);
               border: 1px solid rgba(255, 255, 255, 0.1);
               color: #fff;
               border-radius: 8px;
-            "
-          >
-            <option value="text">Text</option>
-            <option value="voice">Voice</option>
-          </select>
-          <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end">
-            <button
-              type="button"
-              class="btn-text"
-              id="cancel-channel-btn"
-              style="
+            ">
+          <option value="text">Text</option>
+          <option value="voice">Voice</option>
+        </select>
+        <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end">
+          <button type="button" class="btn-text" id="cancel-channel-btn" style="
                 padding: 8px 16px;
                 background: none;
                 border: none;
                 color: var(--text-dim);
                 cursor: pointer;
-              "
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              class="btn-primary"
-              style="
+              ">
+            Cancel
+          </button>
+          <button type="submit" class="btn-primary" style="
                 padding: 8px 16px;
                 background: var(--accent);
                 border: none;
                 color: #fff;
                 border-radius: 8px;
                 cursor: pointer;
-              "
-            >
-              Create
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div class="modal-overlay hidden" id="command-palette-modal">
-      <div class="command-palette glass-panel">
-        <div class="command-palette-input-wrapper">
-          <input
-            id="command-palette-input"
-            type="text"
-            placeholder="Type a command..."
-            autocomplete="off"
-          />
+              ">
+            Create
+          </button>
         </div>
-        <div class="command-palette-results" id="command-palette-results"></div>
-      </div>
+      </form>
     </div>
+  </div>
 
-    <!-- Pickers -->
-    <div class="emoji-picker hidden glass-panel" id="emoji-picker">
-      <div class="emoji-picker-search">
-        <input type="text" id="emoji-search-input" placeholder="Search..." />
+  <div class="modal-overlay hidden" id="command-palette-modal">
+    <div class="command-palette glass-panel">
+      <div class="command-palette-input-wrapper">
+        <input id="command-palette-input" type="text" placeholder="Type a command..." autocomplete="off" />
       </div>
-      <div class="emoji-picker-content" id="emoji-picker-content"></div>
-      <div class="emoji-picker-tabs" id="emoji-picker-tabs"></div>
+      <div class="command-palette-results" id="command-palette-results"></div>
     </div>
+  </div>
 
-    <div class="gif-picker hidden glass-panel" id="gif-picker">
-      <div class="gif-picker-search">
-        <input type="text" id="gif-search-input" placeholder="Search GIFs..." />
+  <!-- Pickers -->
+  <div class="emoji-picker hidden glass-panel" id="emoji-picker">
+    <div class="emoji-picker-search">
+      <input type="text" id="emoji-search-input" placeholder="Search..." />
+    </div>
+    <div class="emoji-picker-content" id="emoji-picker-content"></div>
+    <div class="emoji-picker-tabs" id="emoji-picker-tabs"></div>
+  </div>
+
+  <div class="gif-picker hidden glass-panel" id="gif-picker">
+    <div class="gif-picker-search">
+      <input type="text" id="gif-search-input" placeholder="Search GIFs..." />
+    </div>
+    <div class="gif-picker-content" id="gif-picker-content"></div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Lightbox Overlay -->
+  <div id="lightbox-overlay" class="hidden">
+    <div class="lightbox-content">
+      <img id="lightbox-image" src="" alt="Preview" />
+      <div class="lightbox-controls">
+        <button id="lightbox-download" class="icon-button" title="Download">⬇️</button>
+        <button id="lightbox-close" class="icon-button" title="Close">❌</button>
       </div>
-      <div class="gif-picker-content" id="gif-picker-content"></div>
+      <div id="lightbox-filename"></div>
     </div>
+  </div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <!-- Lightbox Overlay -->
-    <div id="lightbox-overlay" class="hidden">
-      <div class="lightbox-content">
-        <img id="lightbox-image" src="" alt="Preview" />
-        <div class="lightbox-controls">
-          <button id="lightbox-download" class="icon-button" title="Download">⬇️</button>
-          <button id="lightbox-close" class="icon-button" title="Close">❌</button>
-        </div>
-        <div id="lightbox-filename"></div>
-      </div>
-    </div>
+  <script type="module" src="js/main.js"></script>
+</body>
 
-    <script type="module" src="js/main.js"></script>
-  </body>
 </html>

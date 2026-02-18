@@ -188,8 +188,12 @@ function renderGallery() {
 // Init Gallery Events
 // We need to run this once.
 if (elements.galleryToggleBtn) elements.galleryToggleBtn.onclick = toggleGallery;
-if (elements.closeGalleryBtn)
-  elements.closeGalleryBtn.onclick = () => elements.galleryDrawer.classList.add('hidden');
+if (elements.closeGalleryBtn) {
+  elements.closeGalleryBtn.onclick = () => {
+    elements.galleryDrawer.classList.add('hidden');
+    document.body.classList.remove('drawer-open-right');
+  };
+}
 
 document.querySelectorAll('.tab-btn').forEach((btn) => {
   btn.onclick = () => {

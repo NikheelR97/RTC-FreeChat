@@ -1,23 +1,51 @@
+import jwt from 'jsonwebtoken';
 import { rooms, getOrCreateRoom } from '../state/rooms.js';
+import {
+  createChannel,
+  saveMessage,
+  getMessages,
+  addReaction,
+  removeReaction,
+  getReactionsMap,
+  getThreadMessages,
+  getUserById,
+} from '../database.js';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-in-production';
 
 /* eslint-disable no-console */
 export default (io) => {
+  // Middleware for Auth
+  // Middleware for Auth
+  io.use((socket, next) => {
+    const token = socket.handshake.auth.token;
+    if (!token) return next(new Error('Authentication error'));
+
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+      if (err) return next(new Error('Authentication error'));
+      socket.data.userId = decoded.id;
+      socket.data.username = decoded.username;
+      next();
+    });
+  });
+
   io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
+    console.log('Client connected:', socket.id, socket.data.username);
 
     // Join a room (like joining a server)
     socket.on('join-room', ({ roomId, displayName }) => {
       // Store user info
       socket.data.roomId = roomId;
-      socket.data.displayName = displayName || 'Guest';
+      socket.data.displayName = displayName || socket.data.username; // Use auth username as fallback/primary
       socket.data.status = 'online'; // Default status
       socket.data.currentTextChannel = null;
       socket.data.currentVoiceChannel = null;
 
       const room = getOrCreateRoom(roomId);
-      // Add to room
+      // Add to room (Presence)
       room.users.set(socket.id, {
         socketId: socket.id,
+        userId: socket.data.userId, // Track userId
         displayName: socket.data.displayName,
         status: socket.data.status,
       });
@@ -36,6 +64,7 @@ export default (io) => {
         channels: channelsData,
         users: usersData,
       });
+      console.log('[Socket] Sent room-info to', socket.id, 'Channels:', channelsData.length);
 
       // Notify others
       socket.to(roomId).emit('user-joined-room', {
@@ -58,8 +87,7 @@ export default (io) => {
       const user = room.users.get(socket.id);
       if (user) {
         user.status = status;
-        socket.data.status = status; // Update socket data as well
-        // Broadcast update
+        socket.data.status = status;
         io.to(roomId).emit('user-status-update', {
           socketId: socket.id,
           status,
@@ -81,20 +109,33 @@ export default (io) => {
         return;
       }
 
-      room.channels.set(channelId, {
-        type: channelType || 'text',
-        users: new Set(),
-        messages: [],
-      });
+      // 1. Save to DB
+      try {
+        createChannel({
+          id: channelId,
+          name: channelName,
+          type: channelType || 'text',
+        });
 
-      const channels = Array.from(room.channels.entries()).map(([id, data]) => ({
-        id,
-        type: data.type,
-        userCount: data.users.size,
-      }));
+        // 2. Update Memory
+        room.channels.set(channelId, {
+          type: channelType || 'text',
+          users: new Set(),
+        });
 
-      io.to(roomId).emit('channels-updated', { channels });
-      console.log(`Channel ${channelId} created in room ${roomId}`);
+        // 3. Emit Update
+        const channels = Array.from(room.channels.entries()).map(([id, data]) => ({
+          id,
+          type: data.type,
+          userCount: data.users.size,
+        }));
+
+        io.to(roomId).emit('channels-updated', { channels });
+        console.log(`Channel ${channelId} created in room ${roomId}`);
+      } catch (err) {
+        console.error('Create channel error', err);
+        socket.emit('channel-error', { message: 'Failed to create channel' });
+      }
     });
 
     // Join a channel
@@ -105,15 +146,12 @@ export default (io) => {
       const room = rooms.get(roomId);
       if (!room) return;
 
-      // If channelId is null, user wants to leave current channel(s)?
-      // The client uses join-channel {channelId: null} to "leave".
-      // But we have explicit leave-channel now.
       if (!channelId) return;
 
       const channel = room.channels.get(channelId);
       if (!channel) return;
 
-      // determine if we are joining text or voice
+      // determine if joining text or voice
       const isVoice = channel.type === 'voice';
       const currentChannelId = isVoice
         ? socket.data.currentVoiceChannel
@@ -148,7 +186,7 @@ export default (io) => {
       const channelUsers = Array.from(channel.users)
         .map((socketId) => ({
           socketId,
-          displayName: room.users.get(socketId) || 'Guest',
+          displayName: room.users.get(socketId)?.displayName || 'Guest',
         }))
         .filter((u) => u.socketId !== socket.id);
 
@@ -163,11 +201,24 @@ export default (io) => {
         channelId,
       });
 
-      // Send message history if text channel
-      if (!isVoice && channel.messages) {
+      // Send message history from DB
+      if (!isVoice) {
+        const messages = getMessages(channelId);
+        // Enrich messages with reaction maps? 
+        // Or client fetches reactions separately?
+        // getMessages join users table.
+        // We also need reactions.
+        // For simplicity, let's fetch reactions for each message OR client fetches them?
+        // Client expects reactions object on message.
+        // Efficient way:
+        messages.forEach(m => {
+          m.reactions = getReactionsMap(m.id);
+          m.replies = getThreadMessages(m.id); // Simple nested fetch, optimized later if slow
+        });
+
         socket.emit('message-history', {
           channelId,
-          messages: channel.messages,
+          messages,
         });
       }
 
@@ -178,84 +229,44 @@ export default (io) => {
         userCount: data.users.size,
       }));
       io.to(roomId).emit('channels-updated', { channels });
-
-      console.log(
-        `Socket ${socket.id} joined ${isVoice ? 'voice' : 'text'} channel ${channelId} in room ${roomId}`
-      );
     });
 
     // Leave a channel
     socket.on('leave-channel', ({ channelId }) => {
       const roomId = socket.data.roomId;
       if (!roomId) return;
-
       const room = rooms.get(roomId);
       if (!room) return;
-
       const channel = room.channels.get(channelId);
       if (!channel) return;
 
-      // Remove user from channel
       channel.users.delete(socket.id);
 
-      // Update socket data
       if (socket.data.currentTextChannel === channelId) {
         socket.data.currentTextChannel = null;
       } else if (socket.data.currentVoiceChannel === channelId) {
         socket.data.currentVoiceChannel = null;
       }
 
-      // Notify others
       socket.to(roomId).emit('user-left-channel', {
         socketId: socket.id,
         channelId,
       });
       socket.leave(`${roomId}:${channelId}`);
 
-      // Update channel user counts
       const channels = Array.from(room.channels.entries()).map(([id, data]) => ({
         id,
         type: data.type,
         userCount: data.users.size,
       }));
       io.to(roomId).emit('channels-updated', { channels });
-
-      console.log(`Socket ${socket.id} left channel ${channelId} in room ${roomId}`);
     });
 
-    // WebRTC signaling (scoped to voice channels)
-    socket.on('webrtc-offer', ({ targetId, offer }) => {
-      io.to(targetId).emit('webrtc-offer', {
-        fromId: socket.id,
-        offer,
-        displayName: socket.data.displayName,
-      });
-    });
-
-    socket.on('webrtc-answer', ({ targetId, answer }) => {
-      io.to(targetId).emit('webrtc-answer', {
-        fromId: socket.id,
-        answer,
-      });
-    });
-
-    socket.on('webrtc-ice-candidate', ({ targetId, candidate }) => {
-      io.to(targetId).emit('webrtc-ice-candidate', {
-        fromId: socket.id,
-        candidate,
-      });
-    });
-
-    // Text chat messages (scoped to channels)
+    // Text chat messages
     socket.on('chat-message', ({ text, attachment }) => {
       const roomId = socket.data.roomId;
       const channelId = socket.data.currentTextChannel;
       if (!roomId || !channelId) return;
-
-      const room = rooms.get(roomId);
-      if (!room) return;
-      const channel = room.channels.get(channelId);
-      if (!channel || channel.type !== 'text') return;
 
       const safeText = String(text || '').slice(0, 500);
       const hasText = safeText.trim().length > 0;
@@ -271,166 +282,120 @@ export default (io) => {
         }
         : undefined;
 
+      const userId = socket.data.userId;
       const messageId = Date.now().toString(36) + Math.random().toString(36).substr(2);
 
       const payload = {
         id: messageId,
         socketId: socket.id,
+        userId: userId,
         displayName: socket.data.displayName || 'Guest',
         text: safeText,
         attachment: safeAttachment,
         channelId,
         timestamp: Date.now(),
-        reactions: {}, // { '❤️': { count: 0, users: [] } }
+        reactions: {},
         replies: [],
       };
 
-      // Store message in history
-      if (!channel.messages) channel.messages = [];
-      channel.messages.push(payload);
+      // 1. Save to DB
+      try {
+        saveMessage({
+          id: messageId,
+          channelId,
+          userId,
+          text: safeText,
+          attachment: safeAttachment,
+          timestamp: payload.timestamp,
+        });
 
-      // Limit history to 50 messages
-      if (channel.messages.length > 50) {
-        channel.messages.shift();
+        // 2. Emit
+        io.to(`${roomId}:${channelId}`).emit('chat-message', payload);
+      } catch (err) {
+        console.error('Save message error', err);
       }
-
-      io.to(`${roomId}:${channelId}`).emit('chat-message', payload);
     });
 
     // Thread Reply
     socket.on('send-reply', ({ channelId, parentId, text }) => {
       const roomId = socket.data.roomId;
-      console.log('[Server] send-reply', { roomId, channelId, parentId, text });
+      if (!roomId || !channelId || !parentId || !text) return;
 
-      if (!roomId || !channelId || !parentId || !text) {
-        console.error('[Server] Missing data for reply');
-        return;
+      const userId = socket.data.userId;
+      const replyId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+      const safeText = String(text).slice(0, 500);
+      const timestamp = Date.now();
+
+      try {
+        saveMessage({
+          id: replyId,
+          channelId,
+          userId,
+          text: safeText,
+          replyTo: parentId,
+          timestamp,
+        });
+
+        // Broadcast to main thread listeners
+        const replies = getThreadMessages(parentId);
+        io.to(roomId).emit('thread-updated', {
+          parentId,
+          replies,
+        });
+
+        // Update reply count in main chat
+        io.to(`${roomId}:${channelId}`).emit('message-updated', {
+          id: parentId,
+          replyCount: replies.length,
+        });
+
+      } catch (err) {
+        console.error('Reply error', err);
       }
-
-      const room = rooms.get(roomId);
-      if (!room) {
-        console.error('[Server] Room not found', roomId);
-        return;
-      }
-      const channel = room.channels.get(channelId);
-      if (!channel || !channel.messages) return;
-
-      const parentMessage = channel.messages.find((m) => m.id === parentId);
-      if (!parentMessage) {
-        console.error('[Server] Parent message not found', parentId);
-        return;
-      }
-
-      if (!parentMessage.replies) parentMessage.replies = [];
-
-      const reply = {
-        id: Date.now().toString(36) + Math.random().toString(36).substr(2),
-        parentId,
-        socketId: socket.id,
-        displayName: socket.data.displayName || 'Guest',
-        text: String(text).slice(0, 500),
-        timestamp: Date.now(),
-      };
-
-      parentMessage.replies.push(reply);
-
-      // Broadcast thread update to anyone viewing the thread
-      // io.to(roomId) should work if users are in the room.
-      io.to(roomId).emit('thread-updated', {
-        parentId,
-        replies: parentMessage.replies,
-      });
-
-      // Update main chat to show reply count
-      // Users in channel are in `${roomId}:${channelId}`
-      io.to(`${roomId}:${channelId}`).emit('message-updated', {
-        id: parentId,
-        replyCount: parentMessage.replies.length,
-      });
     });
 
     // Reactions
     socket.on('reaction-add', ({ channelId, messageId, emoji }) => {
       const roomId = socket.data.roomId;
-      if (!roomId || !channelId || !messageId || !emoji) return;
+      const userId = socket.data.userId;
+      if (!roomId || !messageId || !emoji) return;
 
-      const room = rooms.get(roomId);
-      if (!room) return;
-      const channel = room.channels.get(channelId);
-      if (!channel || !channel.messages) return;
-
-      const message = channel.messages.find((m) => m.id === messageId);
-      if (!message) return;
-
-      if (!message.reactions) message.reactions = {};
-      if (!message.reactions[emoji]) message.reactions[emoji] = { count: 0, users: [] };
-
-      // Check if user already reacted with this emoji
-      if (!message.reactions[emoji].users.includes(socket.id)) {
-        message.reactions[emoji].users.push(socket.id);
-        message.reactions[emoji].count++;
-
+      try {
+        addReaction(messageId, userId, emoji);
+        const reactions = getReactionsMap(messageId);
         io.to(`${roomId}:${channelId}`).emit('reaction-update', {
           messageId,
-          reactions: message.reactions,
+          reactions,
         });
+      } catch (err) {
+        console.error('Reaction add error', err);
       }
     });
 
     socket.on('reaction-remove', ({ channelId, messageId, emoji }) => {
       const roomId = socket.data.roomId;
-      if (!roomId || !channelId || !messageId || !emoji) return;
+      const userId = socket.data.userId;
+      if (!roomId || !messageId || !emoji) return;
 
-      const room = rooms.get(roomId);
-      if (!room) return;
-      const channel = room.channels.get(channelId);
-      if (!channel || !channel.messages) return;
-
-      const message = channel.messages.find((m) => m.id === messageId);
-      if (!message || !message.reactions || !message.reactions[emoji]) return;
-
-      const userIndex = message.reactions[emoji].users.indexOf(socket.id);
-      if (userIndex !== -1) {
-        message.reactions[emoji].users.splice(userIndex, 1);
-        message.reactions[emoji].count--;
-        if (message.reactions[emoji].count <= 0) {
-          delete message.reactions[emoji];
-        }
-
+      try {
+        removeReaction(messageId, userId, emoji);
+        const reactions = getReactionsMap(messageId);
         io.to(`${roomId}:${channelId}`).emit('reaction-update', {
           messageId,
-          reactions: message.reactions,
+          reactions,
         });
+      } catch (err) {
+        console.error('Reaction remove error', err);
       }
     });
 
-    // Presence: mute state updates
-    socket.on('mute-state', ({ muted }) => {
-      const roomId = socket.data.roomId;
-      if (!roomId) return;
-      socket.to(roomId).emit('mute-state', {
-        socketId: socket.id,
-        muted: !!muted,
-      });
-    });
-
-    // Get Thread History
+    // Get Thread History (Explicit)
     socket.on('get-thread', ({ channelId, messageId }) => {
-      const roomId = socket.data.roomId;
-      if (!roomId || !channelId || !messageId) return;
-
-      const room = rooms.get(roomId);
-      if (!room) return;
-      const channel = room.channels.get(channelId);
-      if (!channel || !channel.messages) return;
-
-      const message = channel.messages.find((m) => m.id === messageId);
-      if (message) {
-        socket.emit('thread-history', {
-          parentId: messageId,
-          replies: message.replies || [],
-        });
-      }
+      const replies = getThreadMessages(messageId);
+      socket.emit('thread-history', {
+        parentId: messageId,
+        replies,
+      });
     });
 
     // Typing Indicators
@@ -453,15 +418,46 @@ export default (io) => {
       });
     });
 
+    // Mute state
+    socket.on('mute-state', ({ muted }) => {
+      const roomId = socket.data.roomId;
+      if (!roomId) return;
+      socket.to(roomId).emit('mute-state', {
+        socketId: socket.id,
+        muted: !!muted,
+      });
+    });
+
+    // WebRTC
+    socket.on('webrtc-offer', ({ targetId, offer }) => {
+      io.to(targetId).emit('webrtc-offer', {
+        fromId: socket.id,
+        offer,
+        displayName: socket.data.displayName,
+      });
+    });
+
+    socket.on('webrtc-answer', ({ targetId, answer }) => {
+      io.to(targetId).emit('webrtc-answer', {
+        fromId: socket.id,
+        answer,
+      });
+    });
+
+    socket.on('webrtc-ice-candidate', ({ targetId, candidate }) => {
+      io.to(targetId).emit('webrtc-ice-candidate', {
+        fromId: socket.id,
+        candidate,
+      });
+    });
+
     socket.on('disconnect', () => {
       const roomId = socket.data.roomId;
       if (roomId && rooms.has(roomId)) {
         const room = rooms.get(roomId);
         room.users.delete(socket.id);
 
-        // Leave channels
         const channelsToLeave = [socket.data.currentTextChannel, socket.data.currentVoiceChannel];
-
         channelsToLeave.forEach((channelId) => {
           if (channelId) {
             const channel = room.channels.get(channelId);
@@ -475,11 +471,13 @@ export default (io) => {
           }
         });
 
-        // Clean up empty room
         if (room.users.size === 0) {
+          // Keep room alive or delete? 
+          // If we delete, we lose channel map in memory.
+          // Since channels are in DB, we can delete in-memory room. 
+          // getOrCreateRoom will check DB again.
           rooms.delete(roomId);
         } else {
-          // Update channel user counts
           const channels = Array.from(room.channels.entries()).map(([id, data]) => ({
             id,
             type: data.type,
@@ -487,7 +485,6 @@ export default (io) => {
           }));
           io.to(roomId).emit('channels-updated', { channels });
         }
-
         socket.to(roomId).emit('user-left-room', { socketId: socket.id });
       }
       console.log('Client disconnected:', socket.id);

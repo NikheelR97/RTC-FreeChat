@@ -1,8 +1,8 @@
 
 
 export const elements = {
-  joinScreen: document.getElementById('join-screen'),
   app: document.getElementById('app'),
+  joinScreen: document.getElementById('join-screen'),
   joinForm: document.getElementById('join-form'),
   displayNameInput: document.getElementById('display-name-input'),
 
@@ -84,4 +84,5 @@ export const elements = {
   threadForm: document.getElementById('thread-form'),
   threadInput: document.getElementById('thread-input'),
   closeThreadBtn: document.getElementById('close-thread-btn'),
+  logoutBtn: document.getElementById('logout-btn'),
 };

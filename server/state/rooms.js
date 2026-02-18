@@ -1,20 +1,26 @@
-/**
- * Room and channel structure:
- * rooms: Map<roomId, { channels: Map<channelId, { type: 'text'|'voice', users: Set<socketId> }>, users: Map<socketId, displayName> }>
- */
+import { getChannels } from '../database.js';
+
 export const rooms = new Map();
 
 export function getOrCreateRoom(roomId) {
   if (!rooms.has(roomId)) {
+    // Initialize room with empty channels/users maps
     rooms.set(roomId, {
       channels: new Map(),
       users: new Map(),
     });
-    // Create default channels
+
+    // Populate channels from Database
+    const dbChannels = getChannels();
+    console.log('[Rooms] Loaded channels from DB:', dbChannels.length, dbChannels);
     const room = rooms.get(roomId);
-    room.channels.set('general', { type: 'text', users: new Set(), messages: [] });
-    room.channels.set('voice-1', { type: 'voice', users: new Set(), messages: [] });
-    room.channels.set('Lounge', { type: 'voice', users: new Set(), messages: [] });
+
+    dbChannels.forEach((c) => {
+      room.channels.set(c.id, {
+        type: c.type,
+        users: new Set(),
+      });
+    });
   }
   return rooms.get(roomId);
 }

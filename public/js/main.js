@@ -25,6 +25,53 @@ import { setupDragDrop } from './drag-drop.js';
 
 import { setupGestures } from './gestures.js';
 
+// Auth Check
+const token = localStorage.getItem('token');
+if (!token) {
+  window.location.href = '/login.html';
+} else {
+  // Verify token with server
+  fetch('/api/auth/me', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error('Invalid token');
+      return res.json();
+    })
+    .then((data) => {
+      state.currentUser = data.user;
+      state.currentDisplayName = data.user.username;
+
+      // Update UI with user info
+      if (elements.currentUserName) elements.currentUserName.textContent = state.currentDisplayName;
+      if (elements.currentUserAvatar)
+        elements.currentUserAvatar.textContent = getInitials(state.currentDisplayName);
+
+      // Hide Join Screen / Show App
+      if (elements.joinScreen) elements.joinScreen.classList.add('hidden');
+      if (elements.app) elements.app.classList.remove('hidden');
+
+      // Auto-connect socket
+      initSocket();
+    })
+    .catch(() => {
+      localStorage.removeItem('token');
+      window.location.href = '/login.html';
+    });
+}
+
+function initSocket() {
+  const socket = io({
+    auth: { token },
+  });
+  setSocket(socket);
+  setupSocket(socket);
+
+  // Join default room
+  state.currentRoomId = 'main';
+  socket.emit('join-room', { roomId: state.currentRoomId, displayName: state.currentDisplayName });
+}
+
 // Setup Pickers
 setupEmojiPicker();
 setupGifPicker();
@@ -39,6 +86,14 @@ setupCommandPalette(switchChannel);
 
 // Expose switchChannel to window for UI callbacks (avoid cyclic dependency issues in simple setup)
 window.switchChannel = switchChannel;
+
+if (elements.logoutBtn) {
+  elements.logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login.html';
+  });
+}
 
 let pendingAttachment = null;
 
@@ -127,35 +182,10 @@ if (elements.removeFileBtn) {
   });
 }
 
+// Join Form (Legacy - Removed for Auth Phase)
 if (elements.joinForm) {
-  elements.joinForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (state.socket) return; // Prevent multiple connections
-
-    const displayName = elements.displayNameInput.value.trim();
-    if (!displayName) return;
-
-    // Disable button to prevent double clicks
-    const btn = elements.joinForm.querySelector('button');
-    if (btn) btn.disabled = true;
-
-    state.currentDisplayName = displayName;
-    if (elements.currentUserName) elements.currentUserName.textContent = displayName;
-    if (elements.currentUserAvatar)
-      elements.currentUserAvatar.textContent = getInitials(displayName);
-
-    // Connect socket
-    const socket = io();
-    setSocket(socket);
-    setupSocket(socket);
-
-    // Join default room 'main'
-    state.currentRoomId = 'main';
-    socket.emit('join-room', { roomId: state.currentRoomId, displayName });
-
-    elements.joinScreen.classList.add('hidden');
-    elements.app.classList.remove('hidden');
-  });
+  elements.joinForm.classList.add('hidden'); // Hide if present
+  elements.app.classList.remove('hidden'); // Show app immediately
 }
 
 // Channel creation
@@ -310,7 +340,10 @@ function toggleMute() {
 if (elements.chatForm) {
   elements.chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!state.socket || !state.socket.connected || !state.currentTextChannelId) return;
+    if (!state.socket || !state.socket.connected || !state.currentTextChannelId) {
+      console.warn('Cannot send message: validation failed');
+      return;
+    }
 
     const text = elements.chatInput.value.trim();
     // Check for pending attachment from DragDrop OR File Input

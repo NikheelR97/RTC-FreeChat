@@ -1,0 +1,29 @@
+Starting test...
+Connected to server
+Received room-info: {
+  "channels": [
+    {
+      "id": "general",
+      "type": "text",
+      "userCount": 0
+    },
+    {
+      "id": "voice-1",
+      "type": "voice",
+      "userCount": 0
+    },
+    {
+      "id": "Lounge",
+      "type": "voice",
+      "userCount": 0
+    }
+  ],
+  "users": [
+    {
+      "socketId": "OEj16NpZLcpu4Bg5AAAB",
+      "userId": "test-user-id",
+      "displayName": "TestUser",
+      "status": "online"
+    }
+  ]
+}

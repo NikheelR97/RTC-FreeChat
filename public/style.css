@@ -32,12 +32,15 @@
 body {
   margin: 0;
   padding: 0;
-  height: 100dvh;
-  /* Dynamic viewport height */
+  width: 100%;
+  height: 100%;
   background: var(--bg-dark);
   color: var(--text-main);
   font-family: 'Inter', system-ui, sans-serif;
   overflow: hidden;
+  position: fixed;
+  /* Prevent mobile scroll bounce */
+  inset: 0;
   /* Subtle mesh gradient background */
   background-image:
     radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.15) 0%, transparent 20%),
@@ -54,10 +57,13 @@ body {
 
 /* Fluid Viewport */
 .app {
-  display: flex;
+  position: fixed;
+  /* Force full screen */
+  inset: 0;
   width: 100%;
   height: 100%;
-  position: relative;
+  display: flex;
+  overflow: hidden;
 }
 
 .fluid-viewport {
@@ -108,6 +114,16 @@ body {
   display: flex;
   flex-direction: column;
   border-right: var(--glass-border);
+  height: 100%;
+  /* Ensure full height */
+}
+
+.drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  /* Important for flex scrolling */
+  padding: 10px 0;
 }
 
 .drawer-left {
@@ -290,22 +306,10 @@ input#chat-input {
     border-right: 1px solid rgba(255, 255, 255, 0.05);
   }
 
-  .dynamic-island {
-    left: calc(260px + 50%);
-    /* Center relative to main viewport excluding drawer */
-    transform: translateX(-50%);
-  }
-
-  .floating-dock {
-    left: calc(260px + 50%);
-    transform: translateX(-50%);
-  }
-
+  /* Hide menu btn on desktop */
   #menu-btn {
     display: none;
   }
-
-  /* Hide menu btn on desktop */
 }
 
 @keyframes popIn {
@@ -690,4 +694,121 @@ input#chat-input {
   border-radius: 4px;
   font-size: 11px;
   backdrop-filter: blur(4px);
+}
+
+/* Authentication Pages */
+.auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg-dark);
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.2) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.2) 0%, transparent 40%);
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 400px;
+  padding: 20px;
+  z-index: 10;
+}
+
+.auth-card {
+  padding: 40px;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.auth-header {
+  text-align: center;
+}
+
+.auth-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.auth-header p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dim);
+  margin-left: 4px;
+}
+
+.form-group input {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: var(--text-main);
+  font-size: 15px;
+  outline: none;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.form-group input:focus {
+  border-color: var(--accent);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 8px;
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(56, 189, 248, 0.4);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.auth-footer {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.auth-footer a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-footer a:hover {
+  text-decoration: underline;
 }

@@ -63,8 +63,11 @@ export function setupSocket(socket) {
     const firstTextChannel = Array.from(state.channels.entries()).find(
       ([, ch]) => ch.type === 'text'
     );
+    // Force join if no channel is selected
     if (firstTextChannel && !state.currentTextChannelId) {
-      if (window.switchChannel) window.switchChannel(firstTextChannel[0]);
+      if (window.switchChannel) {
+        window.switchChannel(firstTextChannel[0]);
+      }
     }
   });
 

@@ -1,9 +1,14 @@
 import { test, expect } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.fill('#display-name-input', 'Navigator');
-    await page.click('#join-button');
+    // Signup flow
+    const username = `Navigator_${Date.now()}`;
+    await page.goto('/signup.html');
+    await page.fill('#username', username);
+    await page.fill('#password', 'password');
+    await page.click('#signup-btn');
+    // Wait for redirect and socket connection
+    await expect(page).toHaveURL(/\/$/);
 });
 
 test('user can switch channels', async ({ page }) => {
