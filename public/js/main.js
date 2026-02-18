@@ -26,6 +26,16 @@ import { setupDragDrop } from './drag-drop.js';
 import { setupGestures } from './gestures.js';
 
 // Auth Check
+// Check for token in URL fragment (OAuth callback)
+const hash = window.location.hash;
+if (hash && hash.includes('token=')) {
+  const token = hash.split('token=')[1].split('&')[0];
+  if (token) {
+    localStorage.setItem('token', token);
+    window.location.hash = ''; // Clear hash
+  }
+}
+
 const token = localStorage.getItem('token');
 if (!token) {
   window.location.href = '/login.html';

@@ -10,6 +10,9 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import setupSocketHandlers from './server/socket/socketHandler.js';
+import session from 'express-session';
+import passport from 'passport';
+import { setupPassport } from './server/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,6 +27,19 @@ const JWT_SECRET = 'super-secret-key-change-in-production'; // In real app, use 
 
 const app = express();
 app.use(express.json()); // Parse JSON bodies
+
+// Session setup
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'keyboard cat',
+  resave: false,
+  saveUninitialized: false,
+}));
+
+// Passport setup
+setupPassport(app);
+app.use(passport.initialize());
+app.use(passport.session());
+
 const server = http.createServer(app);
 const io = new Server(server);
 
@@ -114,6 +130,27 @@ app.post('/api/auth/login', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+// OAuth Routes
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile'] }));
+
+app.get('/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: '/login.html' }),
+  (req, res) => {
+    const token = jwt.sign({ id: req.user.id, username: req.user.username }, JWT_SECRET, { expiresIn: '24h' });
+    res.redirect(`/#token=${token}`);
+  }
+);
+
+app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] }));
+
+app.get('/auth/github/callback',
+  passport.authenticate('github', { failureRedirect: '/login.html' }),
+  (req, res) => {
+    const token = jwt.sign({ id: req.user.id, username: req.user.username }, JWT_SECRET, { expiresIn: '24h' });
+    res.redirect(`/#token=${token}`);
+  }
+);
 
 const authMiddleware = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];

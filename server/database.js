@@ -11,7 +11,7 @@ const dataDir = path.join(__dirname, '../data');
 fs.ensureDirSync(dataDir);
 
 const dbPath = path.join(dataDir, 'chat.db');
-const db = new Database(dbPath);
+export const db = new Database(dbPath); // Export db for custom queries
 db.pragma('journal_mode = WAL'); // Better concurrency
 
 export function initDB() {
@@ -37,6 +37,16 @@ export function initDB() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Migration: Add provider columns if they don't exist
+  try {
+    db.exec('ALTER TABLE users ADD COLUMN provider TEXT');
+    db.exec('ALTER TABLE users ADD COLUMN provider_id TEXT');
+    console.log('Added provider columns to users table');
+  } catch (err) {
+    // Columns likely already exist
+    // console.log('Provider columns already exist or error:', err.message);
+  }
 
   // Messages Table
   db.exec(`
