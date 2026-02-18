@@ -94,8 +94,14 @@ async function searchGifs(query, append = false) {
   if (isLoading) return;
   isLoading = true;
 
-  if (!append)
-    elements.gifPickerContent.innerHTML = `<div class="loading">Searching for "${query}"...</div>`;
+  if (!append) {
+    // Clear previous content and safely show loading text without interpreting `query` as HTML
+    elements.gifPickerContent.textContent = '';
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading';
+    loadingDiv.textContent = `Searching for "${query}"...`;
+    elements.gifPickerContent.appendChild(loadingDiv);
+  }
 
   try {
     const url = `${BASE_URL}/search?q=${encodeURIComponent(query)}&key=${API_KEY}&client_key=${CLIENT_KEY}&limit=20&media_filter=minimal&pos=${nextPos}`;
