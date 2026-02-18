@@ -1,7 +1,7 @@
-const { rooms, getOrCreateRoom } = require('../state/rooms');
+import { rooms, getOrCreateRoom } from '../state/rooms.js';
 
 /* eslint-disable no-console */
-module.exports = (io) => {
+export default (io) => {
   io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
 

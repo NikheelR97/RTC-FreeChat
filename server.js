@@ -1,11 +1,15 @@
-const path = require('path');
-const fs = require('fs');
+import path from 'path';
+import fs from 'fs';
 /* eslint-disable no-console */
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const multer = require('multer');
-const setupSocketHandlers = require('./server/socket/socketHandler');
+import express from 'express';
+import http from 'http';
+import { Server } from 'socket.io';
+import multer from 'multer';
+import { fileURLToPath } from 'url';
+import setupSocketHandlers from './server/socket/socketHandler.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);

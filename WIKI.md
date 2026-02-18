@@ -37,6 +37,7 @@ RTC FreeChat is built on a **Vanilla JS + Node.js** stack to ensure maximum perf
 
 - **Express**: Serves static assets.
 - **Socket.io**: Handles signaling for WebRTC, chat events, and user presence.
+- **ES Modules**: The entire backend now uses standard `import`/`export` syntax (Node.js 18+).
 - **In-Memory State**: Currently stores temporary channel/user data (Phase 13 will add persistence).
 
 ### Frontend structure
@@ -122,6 +123,9 @@ GitHub Actions are configured to automatically run checks on every push:
 
 - **Linting**: Ensures code style and catches errors.
 - **CodeQL**: Scans for security vulnerabilities.
+- **Automated Tests**:
+  - **Unit**: Validates utility functions (`npm run test:unit`).
+  - **E2E**: Verifies critical user flows via Playwright (`npm run test:e2e`).
 
 ### Tech Stack
 

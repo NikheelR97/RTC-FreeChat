@@ -50,16 +50,23 @@ RTC FreeChat is a lightweight yet powerful chat and video conferencing applicati
    npm run lint
    ```
 
-5. **Open in Browser**
+5. **Run Tests** (Optional)
+
+   ```bash
+   npm test
+   ```
+
+6. **Open in Browser**
    Visit `http://localhost:3000`
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: Vanilla JavaScript (ES Modules), CSS3 Variables.
-- **Backend**: Node.js, Express.
+- **Frontend**: Vanilla JavaScript (ES Modules), CSS3 Variables (Neo-Fluid Design).
+- **Backend**: Node.js (ESM), Express.
 - **Real-time**: Socket.io, WebRTC (RTCPeerConnection).
+- **Testing**: Playwright (E2E), Node Native Test Runner (Unit).
 
 ## 📄 License
 

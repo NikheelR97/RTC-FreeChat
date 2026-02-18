@@ -2,9 +2,9 @@
  * Room and channel structure:
  * rooms: Map<roomId, { channels: Map<channelId, { type: 'text'|'voice', users: Set<socketId> }>, users: Map<socketId, displayName> }>
  */
-const rooms = new Map();
+export const rooms = new Map();
 
-function getOrCreateRoom(roomId) {
+export function getOrCreateRoom(roomId) {
   if (!rooms.has(roomId)) {
     rooms.set(roomId, {
       channels: new Map(),
@@ -14,11 +14,7 @@ function getOrCreateRoom(roomId) {
     const room = rooms.get(roomId);
     room.channels.set('general', { type: 'text', users: new Set(), messages: [] });
     room.channels.set('voice-1', { type: 'voice', users: new Set(), messages: [] });
+    room.channels.set('Lounge', { type: 'voice', users: new Set(), messages: [] });
   }
   return rooms.get(roomId);
 }
-
-module.exports = {
-  rooms,
-  getOrCreateRoom,
-};

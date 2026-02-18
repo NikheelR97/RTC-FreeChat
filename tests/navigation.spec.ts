@@ -8,11 +8,12 @@ test.beforeEach(async ({ page }) => {
 
 test('user can switch channels', async ({ page }) => {
     // Join Text Channel
-    await page.click('li:has-text("# general")');
+    await page.waitForSelector('.channel-item');
+    await page.click('.channel-item:has-text("# general")');
     await expect(page.locator('#current-channel-name')).toHaveText('general');
 
     // Join Voice Channel
-    await page.click('li:has-text("# Lounge")');
+    await page.click('.channel-item:has-text("# Lounge")');
 
     // Verify Voice Panel appears
     await expect(page.locator('#voice-panel')).toBeVisible();

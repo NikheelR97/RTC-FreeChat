@@ -126,21 +126,16 @@ export function createStatusPicker() {
 export function updateVoicePanel(participants) {
   if (!elements.voicePanel) return;
 
-  const container = elements.voicePanel;
-  container.innerHTML = '<h3>Voice Channel</h3>';
-
   if (state.currentVoiceChannelId) {
     elements.voicePanel.classList.remove('hidden');
-    if (elements.voiceChannelName)
+    if (elements.voiceChannelName) {
       elements.voiceChannelName.textContent = state.currentVoiceChannelId;
-
-    if (participants.size === 0) {
-      container.innerHTML += '<div class="empty-state">No one is here</div>';
-    } else {
-      participants.forEach((_p, _socketId) => {
-        // ... render logic ...
-      });
     }
+
+    // Optional: Update participant count or avatars if needed, 
+    // but do NOT overwrite the buttons.
+    // For now, the Call Grid handles the main participant view.
+
   } else {
     elements.voicePanel.classList.add('hidden');
   }
