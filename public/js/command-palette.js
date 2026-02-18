@@ -43,7 +43,7 @@ export function setupCommandPalette(switchChannel) {
         label: `Join #${id}`,
         sub: ch.type === 'voice' ? 'Voice Channel' : 'Text Channel',
         icon: ch.type === 'voice' ? '🔊' : '#',
-        action: () => window.switchChannel && window.switchChannel(id),
+        action: () => switchChannel && switchChannel(id),
       });
     });
 

@@ -4,7 +4,6 @@ import {
   updateMembersList,
   updateVoicePanel,
   appendChatMessage,
-  setStatus,
   showTyping,
   hideTyping,
   updateMessageReactions,
@@ -43,7 +42,8 @@ export function setupSocket(socket) {
   socket.off('mute-state');
 
   socket.on('connect', () => {
-    console.log('Connected to server');
+    socket.on('connect', () => {
+    });
   });
 
   socket.on('room-info', ({ channels: channelsData, users: usersData }) => {
@@ -255,7 +255,7 @@ export function setupSocket(socket) {
     }
   });
 
-  socket.on('user-stopped-typing', ({ socketId, displayName, channelId }) => {
+  socket.on('user-stopped-typing', ({ socketId, channelId }) => {
     // Note: server only sent socketId in stop-typing, but we need displayName for set?
     // Actually our set uses displayName purely.
     // Wait, ShowTyping uses displayName. HideTyping uses displayName.

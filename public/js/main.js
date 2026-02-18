@@ -17,7 +17,7 @@ import {
 } from './webrtc.js';
 
 import { setupSocket } from './socket-client.js';
-import { sounds } from './sounds.js';
+
 import { setupEmojiPicker } from './emoji.js';
 import { setupGifPicker } from './gif.js';
 import { setupCommandPalette } from './command-palette.js';

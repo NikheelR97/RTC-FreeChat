@@ -151,7 +151,7 @@ function renderGifs(results, append) {
 }
 
 function sendGif(gifData) {
-  console.log('Selected GIF Data:', gifData); // Debug log
+
 
   // We send the higher quality 'gif' or 'mediumgif' for the chat
   // But 'tinygif' is good for preview. Let's use 'mediumgif' url.

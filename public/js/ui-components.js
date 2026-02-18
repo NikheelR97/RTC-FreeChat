@@ -137,7 +137,7 @@ export function updateVoicePanel(participants) {
     if (participants.size === 0) {
       container.innerHTML += '<div class="empty-state">No one is here</div>';
     } else {
-      participants.forEach((p, _socketId) => {
+      participants.forEach((_p, _socketId) => {
         // ... render logic ...
       });
     }
