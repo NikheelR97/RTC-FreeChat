@@ -1,73 +1,99 @@
-# React + TypeScript + Vite
+# Aether 🌌
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Aether** is a privacy-first, self-hosted communication platform designed to bridge the gap between the performance of desktop apps and the security of zero-knowledge architectures. It essentially functions as a "Private Discord" where YOU own the data.
 
-Currently, two official plugins are available:
+![Aether UI](https://via.placeholder.com/800x450?text=Aether+Dashboard+Preview)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Key Features
 
-## React Compiler
+### 🔒 Privacy & Security (Zero-Knowledge)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **End-to-End Encryption (E2EE)**: Built on the **Signal Protocol** (Double Ratchet, X3DH). Messages are encrypted on your device and can only be read by the intended recipient.
+- **Dual Encryption**: Sender visibility is achieved by encrypting outgoing messages for *both* the recipient and the sender's own other devices.
+- **Self-Healing Identity**: Automated session management that detects and repairs corrupted cryptographic states.
 
-## Expanding the ESLint configuration
+### 🎙️ Real-Time Communication
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Instant Messaging**: Powered by **Supabase Realtime** for sub-millisecond latency.
+- **Voice Chat**: Peer-to-Peer audio streaming using **WebRTC** (Mesh Topology) and **Opus** codec.
+- **Multi-Server Architecture**: Seamlessly switch between different "Guilds" (Servers) and Channels.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 💻 Modern Tech Stack
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- **Frontend**: React (TypeScript) + Vite + Tailwind CSS v4.
+- **Backend Service**: Supabase (PostgreSQL, Auth, Realtime).
+- **Desktop Runtime**: **Tauri** (Rust) - *In Progress*.
+- **Compatibility**: Partial Discord Gateway emulation (Holo-Gateway) to support existing bots.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+---
+
+## 🛠️ Getting Started
+
+### Prerequisites
+
+- Node.js (v18+)
+- Rust (for Tauri build)
+- Supabase Project (or local instance)
+
+### Installation
+
+1. **Clone the repository**
+
+    ```bash
+    git clone https://github.com/NikheelR97/RTC-FreeChat.git
+    cd RTC-FreeChat
+    ```
+
+2. **Install Client Dependencies**
+
+    ```bash
+    cd client
+    npm install
+    ```
+
+3. **Environment Setup**
+    Create a `.env` file in the `client` directory:
+
+    ```env
+    VITE_SUPABASE_URL=your_supabase_url
+    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+    ```
+
+4. **Run Development Server**
+
+    ```bash
+    npm run dev
+    ```
+
+---
+
+## 🏗️ Architecture
+
+```mermaid
+graph TD
+    User[User Client] -->|E2EE Encrypted Data| Supabase[Supabase DB]
+    User -->|P2P Voice| Peer[Peer Client]
+    Supabase -->|Realtime Events| User
+    
+    subgraph Client [Tauri / Browser]
+        React[React UI]
+        Signal[Signal Protocol Store]
+        Local[LocalStorage (Keys)]
+    end
+    
+    React --> Signal
+    Signal --> Local
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🤝 Contributing
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+This project is currently in **Alpha**.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **Phase 1**: Blueprint & Architecture (Done)
+- **Phase 2**: Core Infrastructure (Done)
+- **Phase 3**: Client Development (Active)
+- **Phase 4**: Mobile Port (Planned)
+
+## 📄 License
+
+MIT License. Built with ❤️ for the decentralized web.
